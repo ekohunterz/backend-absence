@@ -15,8 +15,8 @@ return new class extends Migration {
             $table->foreignId('attendance_id')->constrained('attendances')->onDelete('cascade');
             $table->foreignId('student_id')->constrained('students')->onDelete('cascade');
             $table->enum('status', ['hadir', 'izin', 'sakit', 'alpa'])->default('hadir');
-            $table->dateTime('check_in_time')->nullable();
-            $table->dateTime('check_out_time')->nullable();
+            $table->time('check_in_time')->nullable();
+            $table->time('check_out_time')->nullable();
             $table->string('location', 255)->nullable();
             $table->string('photo_in', 255)->nullable();
             $table->string('photo_out', 255)->nullable();

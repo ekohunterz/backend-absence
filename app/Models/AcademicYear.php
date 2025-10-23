@@ -13,6 +13,25 @@ class AcademicYear extends Model
         'is_active',
     ];
 
+    protected $appends = [
+        'name',
+    ];
+
+    protected static function booted()
+    {
+        static::saving(function ($model) {
+            // Jika tahun ini di-set aktif, nonaktifkan semua tahun lain
+            if ($model->is_active) {
+                static::where('id', '!=', $model->id)
+                    ->update(['is_active' => false]);
+            }
+        });
+    }
+
+    public function getNameAttribute(): string
+    {
+        return $this->start_year . '/' . $this->end_year . ' ' . $this->semester;
+    }
 
     public function attendances()
     {

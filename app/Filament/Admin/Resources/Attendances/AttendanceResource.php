@@ -5,16 +5,20 @@ namespace App\Filament\Admin\Resources\Attendances;
 use App\Filament\Admin\Resources\Attendances\Pages\CreateAttendance;
 use App\Filament\Admin\Resources\Attendances\Pages\EditAttendance;
 use App\Filament\Admin\Resources\Attendances\Pages\ListAttendances;
+use App\Filament\Admin\Resources\Attendances\Pages\Report;
 use App\Filament\Admin\Resources\Attendances\Pages\ViewAttendance;
+use App\Filament\Admin\Resources\Attendances\RelationManagers\AttendanceDetailRelationManager;
 use App\Filament\Admin\Resources\Attendances\Schemas\AttendanceForm;
 use App\Filament\Admin\Resources\Attendances\Schemas\AttendanceInfolist;
 use App\Filament\Admin\Resources\Attendances\Tables\AttendancesTable;
 use App\Models\Attendance;
 use BackedEnum;
+use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use App\Filament\Admin\Pages\SubmitPresence;
 
 class AttendanceResource extends Resource
 {
@@ -22,6 +26,7 @@ class AttendanceResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Clock;
 
+    protected static string|UnitEnum|null $navigationGroup = 'Fitur';
     protected static ?string $recordTitleAttribute = 'date';
 
     protected static ?int $navigationSort = 1;
@@ -50,7 +55,7 @@ class AttendanceResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            'attendance_details' => AttendanceDetailRelationManager::class
         ];
     }
 
@@ -58,9 +63,9 @@ class AttendanceResource extends Resource
     {
         return [
             'index' => ListAttendances::route('/'),
-            'create' => CreateAttendance::route('/create'),
+            // 'create' => CreateAttendance::route('/create'),
             'view' => ViewAttendance::route('/{record}'),
-            'edit' => EditAttendance::route('/{record}/edit'),
+            // 'edit' => EditAttendance::route('/{record}/edit'),
         ];
     }
 }

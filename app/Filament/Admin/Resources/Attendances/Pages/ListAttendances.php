@@ -13,7 +13,12 @@ class ListAttendances extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+
         ];
+    }
+
+    public static function canCreate(): bool
+    {
+        return false;
     }
 }

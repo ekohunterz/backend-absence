@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Attendances\Schemas;
 
 use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class AttendanceInfolist
@@ -11,25 +12,43 @@ class AttendanceInfolist
     {
         return $schema
             ->components([
-                TextEntry::make('date')
-                    ->date(),
-                TextEntry::make('start_time')
-                    ->time(),
-                TextEntry::make('end_time')
-                    ->time(),
-                TextEntry::make('grade_id')
-                    ->numeric(),
-                TextEntry::make('verified_by')
-                    ->numeric()
-                    ->placeholder('-'),
-                TextEntry::make('academic_year_id')
-                    ->numeric(),
-                TextEntry::make('created_at')
-                    ->dateTime()
-                    ->placeholder('-'),
-                TextEntry::make('updated_at')
-                    ->dateTime()
-                    ->placeholder('-'),
+                Section::make()
+                    ->components([
+                        TextEntry::make('date')
+                            ->label('Tanggal')
+                            ->date(),
+                        TextEntry::make('start_time')
+                            ->label('Mulai')
+                            ->time(),
+                        TextEntry::make('end_time')
+                            ->label('Selesai')
+                            ->time(),
+                        TextEntry::make('grade.name')
+                            ->label('Kelas'),
+                        TextEntry::make('verifier.name')
+                            ->label('Verifikasi Oleh')
+                            ->placeholder('-'),
+                        TextEntry::make('academicYear.start_year')
+                            ->label('Tahun Ajaran & Semester')
+                            ->formatStateUsing(fn($state, $record): string => $state . '/' . $state + 1 . ' (' . $record->academicYear->semester . ')'),
+                    ])
+                    ->columns(2)
+                    ->columnSpanFull(),
+                Section::make('Rekap Absensi')
+                    ->components([
+                        TextEntry::make('present_count')
+                            ->label('Hadir'),
+                        TextEntry::make('absent_count')
+                            ->label('Tanpa Keterangan'),
+                        TextEntry::make('sick_count')
+                            ->label('Sakit'),
+                        TextEntry::make('leave_count')
+                            ->label('Izin'),
+
+                    ])
+                    ->columns(4)
+                    ->columnSpanFull(),
+
             ]);
     }
 }
