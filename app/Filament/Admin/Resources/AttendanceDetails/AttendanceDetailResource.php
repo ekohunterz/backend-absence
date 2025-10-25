@@ -24,6 +24,12 @@ class AttendanceDetailResource extends Resource
 
     protected static bool $shouldRegisterNavigation = false;
 
+    protected static ?string $pluralLabel = 'Detail Absensi';
+
+    protected static ?string $singularLabel = 'Detail Absensi';
+
+    protected static ?string $modelLabel = 'Detail Absensi';
+
     public static function form(Schema $schema): Schema
     {
         return AttendanceDetailForm::configure($schema);
@@ -50,7 +56,7 @@ class AttendanceDetailResource extends Resource
     {
         return [
             'index' => ListAttendanceDetails::route('/'),
-            'create' => CreateAttendanceDetail::route('/create'),
+            // 'create' => CreateAttendanceDetail::route('/create'),
             'view' => ViewAttendanceDetail::route('/{record}'),
             'edit' => EditAttendanceDetail::route('/{record}/edit'),
         ];

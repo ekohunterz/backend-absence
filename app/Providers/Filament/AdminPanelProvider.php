@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Filament\Admin\Resources\Grades\GradeResource;
+use App\Filament\Admin\Resources\Majors\MajorResource;
+use App\Filament\Admin\Resources\Students\StudentResource;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Admin\Widgets\LatestAccessLogs;
 use App\Models\User;
@@ -34,6 +37,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Jeffgreco13\FilamentBreezy\BreezyCore;
+use SolutionForest\FilamentPanzoom\FilamentPanzoomPlugin;
 
 final class AdminPanelProvider extends PanelProvider
 {
@@ -72,6 +76,7 @@ final class AdminPanelProvider extends PanelProvider
             ->plugins([
                 BriskTheme::make(),
                 PhosphorIcons::make()->duotone(),
+                FilamentPanzoomPlugin::make(),
                 LightSwitchPlugin::make()
                     ->position(Alignment::BottomCenter)
                     ->enabledOn([
@@ -96,10 +101,13 @@ final class AdminPanelProvider extends PanelProvider
                         'default' => 4,
                         'sm' => 2,
                         'lg' => 4,
-                        'xl' => 6,
+                        'xl' => 4,
                     ])
                     ->includes([
                         UserResource::class,
+                        StudentResource::class,
+                        MajorResource::class,
+                        GradeResource::class
                     ]),
                 FilamentShieldPlugin::make()
                     ->gridColumns([

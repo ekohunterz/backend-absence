@@ -28,13 +28,33 @@ class LeaveRequest extends Model
         return $this->belongsTo(Grade::class);
     }
 
-    public function academicYear()
+    public function academic_year()
     {
         return $this->belongsTo(AcademicYear::class);
     }
 
     public function verifier()
     {
-        return $this->belongsTo(Teacher::class, 'verified_by');
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function attendance_detail()
+    {
+        return $this->belongsTo(AttendanceDetail::class);
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('status', 'approved');
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
+    public function scopeRejected($query)
+    {
+        return $query->where('status', 'rejected');
     }
 }

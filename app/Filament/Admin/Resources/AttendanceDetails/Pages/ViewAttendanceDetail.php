@@ -16,4 +16,5 @@ class ViewAttendanceDetail extends ViewRecord
             EditAction::make(),
         ];
     }
+
 }

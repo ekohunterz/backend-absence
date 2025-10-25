@@ -24,7 +24,7 @@ return new class extends Migration {
             $table->string('avatar_url', 255)->nullable();
             $table->foreignIdFor(Grade::class)->constrained()->cascadeOnDelete();
             $table->enum('status', ['aktif', 'non-aktif', 'keluar', 'lulus'])->default('aktif');
-            $table->string('remember_token', 255)->nullable();
+            $table->rememberToken();
             $table->timestamps();
         });
     }

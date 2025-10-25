@@ -15,12 +15,15 @@ final class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
 
+        $this->call(ShieldSeeder::class);
+        User::factory(10)->create();
         User::factory()->create([
             'name' => 'Admin',
             'email' => 'admin@admin.com',
-        ]);
+            'nip' => '123456789',
+            'gender' => 'L',
+        ])->assignRole('super_admin');
 
         $this->call([
             MajorSeeder::class,
@@ -28,7 +31,6 @@ final class DatabaseSeeder extends Seeder
             AcademicYearSeeder::class,
             StudentSeeder::class,
             SettingSeeder::class,
-            TeacherSeeder::class,
         ]);
     }
 }

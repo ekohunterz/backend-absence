@@ -36,7 +36,7 @@ class Attendance extends Model
     // teacher who verifies attendance
     public function verifier()
     {
-        return $this->belongsTo(Teacher::class, 'verified_by');
+        return $this->belongsTo(User::class, 'verified_by');
     }
 
     public function details()

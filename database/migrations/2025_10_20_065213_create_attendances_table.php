@@ -16,7 +16,7 @@ return new class extends Migration {
             $table->time('start_time');
             $table->time('end_time');
             $table->foreignId('grade_id')->constrained('grades')->onDelete('cascade');
-            $table->foreignId('verified_by')->nullable()->constrained('teachers')->onDelete('set null');
+            $table->foreignId('verified_by')->nullable()->constrained('users')->onDelete('set null');
             $table->foreignId('academic_year_id')->constrained('academic_years')->onDelete('cascade');
             $table->timestamps();
         });

@@ -22,13 +22,12 @@ final class UsersTable
         return $table
             ->columns([
                 Tables\Columns\Layout\Split::make([
-                    Tables\Columns\TextColumn::make('id')
-                        ->grow(false)
-                        ->sortable()
-                        ->searchable(),
+
                     Tables\Columns\ImageColumn::make('avatar_url')
                         ->defaultImageUrl(url('https://www.gravatar.com/avatar/64e1b8d34f425d19e1ee2ea7236d3028?d=mp&r=g&s=250'))
                         ->label('Avatar')
+                        ->visibility('public')
+                        ->disk('public')
                         ->alignEnd()
                         ->square()
                         ->grow(false),
@@ -37,13 +36,24 @@ final class UsersTable
                             ->copyable()
                             ->sortable()
                             ->searchable(),
-                        Tables\Columns\TextColumn::make('email')
+                        Tables\Columns\TextColumn::make('nip')
                             ->copyable()
                             ->sortable()
-                            ->icon(Phosphor::EnvelopeDuotone)
+                            ->icon(Phosphor::CreditCardDuotone)
                             ->searchable(),
                     ])
                         ->alignStart(),
+                    Tables\Columns\Layout\Stack::make([
+                        Tables\Columns\TextColumn::make('email')
+                            ->icon(Phosphor::EnvelopeDuotone)
+                            ->sortable()
+                            ->searchable(),
+                        Tables\Columns\TextColumn::make('phone')
+                            ->icon(Phosphor::PhoneDuotone)
+                            ->sortable()
+                            ->searchable(),
+                    ])
+                        ->alignEnd(),
                     Tables\Columns\TextColumn::make('roles.name')
                         ->badge()
                         ->weight(FontWeight::Bold)

@@ -18,10 +18,12 @@ final class UserInfolist
             ->components([
                 ImageEntry::make('avatar_url')
                     ->label('Avatar')
+                    ->visibility('public')
+                    ->disk('public')
                     ->defaultImageUrl(function ($record) {
                         $hash = md5(mb_strtolower(mb_trim($record->email)));
 
-                        return 'https://www.gravatar.com/avatar/'.$hash.'?d=mp&r=g&s=250';
+                        return 'https://www.gravatar.com/avatar/' . $hash . '?d=mp&r=g&s=250';
                     })
                     ->columnSpan(1),
                 Grid::make(3)

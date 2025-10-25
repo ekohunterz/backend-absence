@@ -29,6 +29,10 @@ final class User extends Authenticatable implements FilamentUser, HasAvatar
         'email',
         'password',
         'phone',
+        'nip',
+        'address',
+        'birth_date',
+        'gender',
     ];
 
     /**
@@ -70,8 +74,4 @@ final class User extends Authenticatable implements FilamentUser, HasAvatar
         ];
     }
 
-    public function teacher()
-    {
-        return $this->hasOne(Teacher::class);
-    }
 }

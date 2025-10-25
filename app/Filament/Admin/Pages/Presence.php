@@ -52,7 +52,7 @@ class Presence extends Page
         $this->grades = Grade::with(['major'])
             ->withExists([
                 'attendances as has_attendance_today' => fn($query) =>
-                    $query->whereDate('date', $today)
+                    $query->whereDate('date', $today)->whereNotNull('verified_by'),
             ])
             ->when(
                 filled($this->search),

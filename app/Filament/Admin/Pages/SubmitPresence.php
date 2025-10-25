@@ -28,39 +28,45 @@ class SubmitPresence extends Page
 
     public function mount(Request $request): void
     {
-
         $grade = Grade::findOrFail($request->grade);
-
         $this->grade = $grade;
 
-        #check if already submitted
-        $alreadySubmitted = Attendance::where('grade_id', $grade->id)->whereDate('date', now()->toDateString())->first();
+        $attendance = Attendance::where('grade_id', $grade->id)
+            ->whereDate('date', now()->toDateString())
+            ->with(['details.student'])
+            ->first();
 
-        if ($alreadySubmitted) {
-            $this->students = $alreadySubmitted->details()->get()->map(fn($d) => [
-                'id' => $d->student->id,
-                'name' => $d->student->name,
-                'nis' => $d->student->nis,
-                'gender' => $d->student->gender,
-                'status' => $d->status,
-            ]);
-            $this->verified = $alreadySubmitted;
+        // Ambil semua siswa di kelas
+        $students = Student::where('grade_id', $grade->id)
+            ->orderBy('name')
+            ->get();
+
+        if ($attendance) {
+            $this->verified = $attendance->verifier;
+
+            // Buat array status absensi dari attendance_details
+            $attendanceMap = $attendance->details->pluck('status', 'student_id')->toArray();
+
+            // Gabungkan semua siswa dengan status absensinya (jika ada)
+            $this->students = $students->map(fn($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'nis' => $s->nis,
+                'gender' => $s->gender,
+                'status' => $attendanceMap[$s->id] ?? 'hadir', // default hadir
+            ])->toArray();
         } else {
-            $this->students = Student::where('grade_id', $grade->id)
-                ->orderBy('name')
-                ->get()
-                ->map(fn($s) => [
-                    'id' => $s->id,
-                    'name' => $s->name,
-                    'nis' => $s->nis,
-                    'gender' => $s->gender,
-                    'status' => 'hadir',
-                ])
-                ->toArray();
+            // Jika belum ada absensi hari ini
+            $this->students = $students->map(fn($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'nis' => $s->nis,
+                'gender' => $s->gender,
+                'status' => 'hadir',
+            ])->toArray();
         }
-
-
     }
+
 
     public function save(): void
     {

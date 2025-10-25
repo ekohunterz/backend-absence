@@ -20,7 +20,7 @@ return new class extends Migration {
             $table->text('reason')->nullable();
             $table->string('proof_file')->nullable(); // uploaded file (image/pdf)
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
-            $table->foreignId('verified_by')->nullable()->constrained('teachers')->onDelete('set null');
+            $table->foreignId('verified_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
         });
     }
