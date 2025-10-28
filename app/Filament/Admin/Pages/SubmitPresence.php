@@ -6,57 +6,109 @@ use App\Models\AcademicYear;
 use App\Models\Attendance;
 use App\Models\Grade;
 use App\Models\Student;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Schemas\Schema;
 use Illuminate\Http\Request;
 use App\Filament\Admin\Pages\Presence;
 use Illuminate\Support\Facades\DB;
 
-class SubmitPresence extends Page
+class SubmitPresence extends Page implements HasSchemas
 {
+    use InteractsWithSchemas;
 
     protected string $view = 'filament.admin.pages.submit-presence';
     protected static ?string $title = 'Presensi';
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $parent = Presence::class;
     protected static ?string $activeNavigationParent = Presence::class;
-    public Grade $grade;
+    public ?Grade $grade = null;
+    public $grades = [];
     public $students = [];
+    public ?string $presence_date = null;
+    public $verified = null;
+    public ?int $grade_id = null;
 
-    public $verified = [];
 
 
     public function mount(Request $request): void
     {
-        $grade = Grade::findOrFail($request->grade);
-        $this->grade = $grade;
+        $this->grades = Grade::orderBy('name')->get();
 
-        $attendance = Attendance::where('grade_id', $grade->id)
-            ->whereDate('date', now()->toDateString())
-            ->with(['details.student'])
+        $this->grade_id = $request->grade
+            ? (int) $request->grade
+            : ($this->grades->first()->id ?? null);
+
+        $this->presence_date = now()->format('Y-m-d');
+
+        $this->loadPresenceData();
+    }
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema->components([
+            // 🔹 Pilih Kelas
+            Select::make('grade_id')
+                ->hiddenLabel()
+                ->placeholder('Pilih Kelas')
+                ->options($this->grades->pluck('name', 'id')->toArray())
+                ->searchable()
+                ->reactive()
+                ->afterStateUpdated(function ($state) {
+                    $this->grade_id = $state;
+                    $this->loadPresenceData();
+                }),
+
+            // 🔹 Pilih Tanggal
+            DatePicker::make('presence_date')
+                ->hiddenLabel()
+                ->placeholder('Tanggal Presensi')
+                ->default($this->presence_date)
+                ->maxDate(now()->format('Y-m-d'))
+                ->reactive()
+                ->afterStateUpdated(function ($state) {
+                    $this->presence_date = $state ?: now()->format('Y-m-d');
+                    $this->loadPresenceData();
+                }),
+        ])->columns(2);
+    }
+
+    protected function loadPresenceData(): void
+    {
+        if (!$this->grade_id) {
+            $this->students = [];
+            return;
+        }
+
+        $this->grade = Grade::find($this->grade_id);
+
+        $attendance = Attendance::with(['details.student', 'verifier'])
+            ->where('grade_id', $this->grade_id)
+            ->whereDate('presence_date', $this->presence_date)
             ->first();
 
         // Ambil semua siswa di kelas
-        $students = Student::where('grade_id', $grade->id)
+        $students = Student::where('grade_id', $this->grade_id)
             ->orderBy('name')
             ->get();
 
         if ($attendance) {
             $this->verified = $attendance->verifier;
-
-            // Buat array status absensi dari attendance_details
             $attendanceMap = $attendance->details->pluck('status', 'student_id')->toArray();
 
-            // Gabungkan semua siswa dengan status absensinya (jika ada)
             $this->students = $students->map(fn($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
                 'nis' => $s->nis,
                 'gender' => $s->gender,
-                'status' => $attendanceMap[$s->id] ?? 'hadir', // default hadir
+                'status' => $attendanceMap[$s->id] ?? 'hadir',
             ])->toArray();
         } else {
-            // Jika belum ada absensi hari ini
+            $this->verified = null;
             $this->students = $students->map(fn($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
@@ -74,10 +126,10 @@ class SubmitPresence extends Page
 
         try {
             // cari apakah absensi untuk kelas & tanggal ini sudah ada
-            $attendance = Attendance::firstOrCreate(
+            $attendance = Attendance::updateOrCreate(
                 [
-                    'grade_id' => $this->grade->id,
-                    'date' => now()->toDateString(),
+                    'grade_id' => $this->grade_id,
+                    'presence_date' => $this->presence_date,
                 ],
                 [ // hanya akan dieksekusi jika belum ada
                     'start_time' => now()->toTimeString(),

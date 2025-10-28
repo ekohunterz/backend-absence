@@ -14,7 +14,7 @@ class AttendanceInfolist
             ->components([
                 Section::make()
                     ->components([
-                        TextEntry::make('date')
+                        TextEntry::make('presence_date')
                             ->label('Tanggal')
                             ->date(),
                         TextEntry::make('start_time')

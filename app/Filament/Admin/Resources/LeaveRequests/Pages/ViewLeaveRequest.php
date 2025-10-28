@@ -29,34 +29,39 @@ class ViewLeaveRequest extends ViewRecord
                 ->modalButton('Terima')
                 ->action(function ($record) {
                     DB::transaction(function () use ($record) {
+
+                        // Ubah status leave request jadi approved
                         $record->update(['status' => 'approved']);
 
-                        // cari atau buat attendance di tanggal tersebut
-                        $attendance = Attendance::firstOrCreate(
-                            [
-                                'grade_id' => $record->grade_id,
-                                'date' => now()->toDateString(),
-                            ],
-                            [ // hanya akan dieksekusi jika belum ada
-                                'start_time' => now()->toTimeString(),
-                                'end_time' => now()->addHours(8)->toTimeString(),
-                                'verified_by' => auth()->id(),
-                                'academic_year_id' => $record->academic_year_id,
-                            ]
-                        );
+                        // Rentang tanggal izin (misal 2025-10-21 s.d 2025-10-23)
+                        $period = \Carbon\CarbonPeriod::create($record->start_date, $record->end_date ?? $record->start_date);
 
-                        // tambahkan atau update detail attendance
-                        AttendanceDetail::updateOrCreate(
-                            [
-                                'attendance_id' => $attendance->id,
-                                'student_id' => $record->student_id,
-                            ],
-                            [
-                                'status' => $record->type,
-                                'leave_request_id' => $record->id,
-                                'verified_by' => auth()->id(),
-                            ]
-                        );
+                        foreach ($period as $date) {
+                            // Buat atau ambil attendance untuk tanggal tersebut
+                            $attendance = Attendance::firstOrCreate(
+                                [
+                                    'grade_id' => $record->grade_id,
+                                    'presence_date' => $date->format('Y-m-d'),
+                                ],
+                                [
+                                    'start_time' => now()->toTimeString(),
+                                    'end_time' => now()->addHours(8)->toTimeString(),
+                                    'academic_year_id' => $record->academic_year_id,
+                                ]
+                            );
+
+                            // Tambahkan atau update detail attendance untuk siswa yang izin
+                            AttendanceDetail::updateOrCreate(
+                                [
+                                    'attendance_id' => $attendance->id,
+                                    'student_id' => $record->student_id,
+                                ],
+                                [
+                                    'status' => $record->type, // izin / sakit
+                                    'leave_request_id' => $record->id,
+                                ]
+                            );
+                        }
                     });
                 }),
 
@@ -77,12 +82,11 @@ class ViewLeaveRequest extends ViewRecord
                         $attendance = Attendance::firstOrCreate(
                             [
                                 'grade_id' => $record->grade_id,
-                                'date' => now()->toDateString(),
+                                'presence_date' => now()->toDateString(),
                             ],
                             [ // hanya akan dieksekusi jika belum ada
                                 'start_time' => now()->toTimeString(),
                                 'end_time' => now()->addHours(8)->toTimeString(),
-                                'verified_by' => auth()->id(),
                                 'academic_year_id' => $record->academic_year_id,
                             ]
                         );
@@ -93,7 +97,7 @@ class ViewLeaveRequest extends ViewRecord
                             ],
                             [
                                 'status' => 'alpa',
-                                'leave_request_id' => $record->id,
+
                             ]
                         );
                     });

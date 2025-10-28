@@ -13,7 +13,7 @@ class AttendanceForm
     {
         return $schema
             ->components([
-                DatePicker::make('date')
+                DatePicker::make('presence_date')
                     ->required(),
                 TimePicker::make('start_time')
                     ->required(),

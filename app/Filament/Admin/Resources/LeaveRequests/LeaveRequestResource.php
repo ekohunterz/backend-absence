@@ -24,6 +24,13 @@ class LeaveRequestResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Phosphor::ArchiveDuotone;
 
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::where('status', 'pending')->count();
+    }
+
+    protected static ?string $navigationBadgeTooltip = 'Permintaan Izin yang belum diverifikasi';
+
     protected static ?string $recordTitleAttribute = 'date';
 
     protected static string|UnitEnum|null $navigationGroup = 'Fitur';

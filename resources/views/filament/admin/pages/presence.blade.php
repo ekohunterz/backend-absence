@@ -3,7 +3,11 @@
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold">Pilih Kelas</h1>
 
-            <div class="inline-flex gap-2">
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="grow">{{ $this->form }}</div>
+                {{-- <x-filament::input.wrapper>
+                    <input type="date" wire:model.live.debounce.250ms="date" class="" />
+                </x-filament::input.wrapper>
                 <x-filament::input.wrapper>
                     <x-filament::input type="text" wire:model.live.debounce.250ms="search"
                         placeholder="Cari Kelas..." />
@@ -15,7 +19,7 @@
                             <option value="{{ $id }}">{{ $name }}</option>
                         @endforeach
                     </x-filament::input.select>
-                </x-filament::input.wrapper>
+                </x-filament::input.wrapper> --}}
             </div>
 
         </div>

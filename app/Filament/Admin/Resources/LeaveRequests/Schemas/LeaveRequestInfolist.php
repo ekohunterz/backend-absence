@@ -19,8 +19,11 @@ class LeaveRequestInfolist
                     ->label('Kelas'),
                 TextEntry::make('academic_year.name')
                     ->label('Tahun Ajaran'),
-                TextEntry::make('date')
-                    ->label('Tanggal')
+                TextEntry::make('start_date')
+                    ->label('Tanggal Mulai')
+                    ->date(),
+                TextEntry::make('end_date')
+                    ->label('Tanggal Selesai')
                     ->date(),
                 TextEntry::make('type')
                     ->label('Jenis')

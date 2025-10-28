@@ -21,7 +21,7 @@ class AttendancesTable
         return $table
             ->defaultSort('created_at', 'desc')
             ->columns([
-                TextColumn::make('date')
+                TextColumn::make('presence_date')
                     ->label('Tanggal')
                     ->date('d M Y')
                     ->timezone('Asia/Jakarta')

@@ -146,7 +146,7 @@ class Report extends Page implements HasSchemas
                 $q->where('grade_id', $this->grade_id)
                     ->where('academic_year_id', $this->academic_year_id)
                     ->when($this->month, function ($q) {
-                        $q->whereMonth('date', $this->month);
+                        $q->whereMonth('presence_date', $this->month);
                     });
             })
             ->with(['student'])
@@ -172,7 +172,7 @@ class Report extends Page implements HasSchemas
             ->whereHas('attendance', function ($q) {
                 $q->where('academic_year_id', $this->academic_year_id)
                     ->when($this->month, function ($q) {
-                        $q->whereMonth('date', $this->month);
+                        $q->whereMonth('presence_date', $this->month);
                     })->when($this->major_id, function ($q) {
                         $q->whereHas('grade', function ($q) {
                             $q->where('major_id', $this->major_id);

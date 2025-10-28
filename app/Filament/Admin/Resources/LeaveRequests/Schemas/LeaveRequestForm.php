@@ -32,7 +32,9 @@ class LeaveRequestForm
                 Select::make('academic_year_id')
                     ->relationship('academic_year', 'start_year')
                     ->required(),
-                DatePicker::make('date')
+                DatePicker::make('start_date')
+                    ->required(),
+                DatePicker::make('end_date')
                     ->required(),
                 Select::make('type')
                     ->options(['sakit' => 'Sakit', 'izin' => 'Izin'])

@@ -30,9 +30,10 @@ class LeaveRequestsTable
                     ->label('Tahun Ajaran')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('date')
+                TextColumn::make('start_date')
                     ->label('Tanggal')
                     ->date()
+                    ->formatStateUsing(fn($record): string => date('d M Y', strtotime($record->start_date)) . ' - ' . date('d M Y', strtotime($record->end_date)))
                     ->sortable(),
                 TextColumn::make('type')
                     ->label('Jenis')

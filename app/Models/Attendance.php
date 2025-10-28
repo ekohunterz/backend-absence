@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Attendance extends Model
 {
     protected $fillable = [
-        'date',
+        'presence_date',
         'start_time',
         'end_time',
         'grade_id',

@@ -3,9 +3,9 @@
 
         <div class="flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-bold">Kelas: {{ $grade->name }}</h1>
-                <p>Tanggal: {{ now()->format('d M Y') }}</p>
+                {{ $this->form }}
             </div>
+
 
             @if ($verified)
                 <div class="text-right">

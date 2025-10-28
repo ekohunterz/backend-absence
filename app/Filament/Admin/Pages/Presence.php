@@ -4,20 +4,27 @@ namespace App\Filament\Admin\Pages;
 
 use App\Models\Grade;
 use App\Models\Major;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Pages\Page;
 use Filafly\Icons\Phosphor\Enums\Phosphor;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Schemas\Schema;
 use UnitEnum;
 use BackedEnum;
 
 
 
-class Presence extends Page
+class Presence extends Page implements HasSchemas
 {
+    use InteractsWithSchemas;
     protected string $view = 'filament.admin.pages.presence';
 
     protected static ?string $navigationLabel = 'Presensi';
 
-    protected static ?string $title = 'Presensi Hari Ini';
+    protected static ?string $title = 'Presensi';
 
     protected static string|null|BackedEnum $navigationIcon = Phosphor::MapPinArea;
 
@@ -25,47 +32,84 @@ class Presence extends Page
 
     public $grades;
     public $majors;
-    public string $search = '';
-    public ?int $selectedMajor = null;
+    public ?int $major_id = null;
+    public ?string $search = '';
+    public ?string $presence_date = null;
+
 
     public function mount(): void
     {
-        $this->loadGrades();
-
-        $this->majors = Major::query()->pluck('name', 'id');
-    }
-
-    public function updatedSearch(): void
-    {
+        $this->majors = Major::orderBy('name')->get();
+        $this->presence_date = now()->format('Y-m-d');
         $this->loadGrades();
     }
 
-    public function updatedSelectedMajor(): void
+    public function form(Schema $schema): Schema
     {
-        $this->loadGrades();
+        return $schema
+            ->components([
+                // 🔹 Tanggal Presensi
+                DatePicker::make('presence_date')
+                    ->hiddenLabel()
+                    ->placeholder('Tanggal Presensi')
+                    ->default($this->presence_date)
+                    ->live()
+                    ->reactive()
+                    ->maxDate(now()->format('Y-m-d'))
+                    ->afterStateUpdated(function ($state) {
+                        $this->presence_date = $state ?? now()->format('Y-m-d');
+                        $this->loadGrades();
+                    }),
+
+                // 🔹 Pencarian kelas
+                TextInput::make('search')
+                    ->hiddenLabel()
+                    ->placeholder('Cari Kelas')
+                    ->live(debounce: 500)
+                    ->afterStateUpdated(function ($state) {
+                        $this->search = $state ?? '';
+                        $this->loadGrades();
+                    }),
+
+                // 🔹 Filter jurusan
+                Select::make('major_id')
+                    ->hiddenLabel()
+                    ->placeholder('Semua Jurusan')
+                    ->selectablePlaceholder(true)
+                    ->options(
+                        $this->majors->pluck('name', 'id')->toArray()
+                    )
+                    ->searchable()
+                    ->reactive()
+                    ->afterStateUpdated(function ($state) {
+                        $this->major_id = $state;
+                        $this->loadGrades();
+                    }),
+            ])
+            ->columns(3)
+        ;
     }
 
     protected function loadGrades(): void
     {
-        $today = now()->toDateString();
 
         $this->grades = Grade::with(['major'])
             ->withExists([
                 'attendances as has_attendance_today' => fn($query) =>
-                    $query->whereDate('date', $today)->whereNotNull('verified_by'),
+                    $query->whereDate('presence_date', $this->presence_date)->whereNotNull('verified_by'),
             ])
             ->when(
                 filled($this->search),
-                fn($query) => $query->where('name', 'like', '%' . $this->search . '%')
+                fn($q) =>
+                $q->where('name', 'like', '%' . $this->search . '%')
             )
             ->when(
-                $this->selectedMajor,
-                fn($query) => $query->where('major_id', $this->selectedMajor)
+                $this->major_id,
+                fn($q) =>
+                $q->where('major_id', $this->major_id)
             )
             ->orderBy('name')
             ->get();
-
-
     }
 
 
