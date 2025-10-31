@@ -6,6 +6,7 @@ use App\Models\AcademicYear;
 use App\Models\Attendance;
 use App\Models\Grade;
 use App\Models\Student;
+use App\Services\WhatsAppService;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -139,6 +140,9 @@ class SubmitPresence extends Page implements HasSchemas
                 ]
             );
 
+            // Simpan detail & kirim notifikasi
+            $whatsappService = new WhatsAppService();
+
             // update detail tiap siswa
             foreach ($this->students as $student) {
                 $attendance->details()->updateOrCreate(
@@ -150,6 +154,22 @@ class SubmitPresence extends Page implements HasSchemas
                         'check_in_time' => $student['status'] == 'hadir' ? now()->toTimeString() : null,
                     ]
                 );
+
+                // 🔔 Kirim notifikasi WhatsApp
+                $studentModel = Student::find($student['id']);
+
+                if ($studentModel && $studentModel->parent_phone) {
+                    dispatch(function () use ($whatsappService, $studentModel, $student) {
+                        $whatsappService->sendAttendanceNotification(
+                            phoneNumber: $studentModel->parent_phone,
+                            studentName: $studentModel->name,
+                            status: $student['status'],
+                            date: now()->format('d F Y'),
+                            time: now()->format('H:i'),
+                            gradeName: $studentModel->grade->name
+                        );
+                    })->afterResponse();
+                }
             }
 
             DB::commit();

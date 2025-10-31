@@ -48,9 +48,11 @@ class AttendanceDetailsTable
                     ->searchable(),
                 ImageColumn::make('photo_in')
                     ->label('Foto Masuk')
+                    ->disk('public')
                     ->searchable(),
                 ImageColumn::make('photo_out')
                     ->label('Foto Keluar')
+                    ->disk('public')
                     ->searchable(),
                 TextColumn::make('created_at')
                     ->dateTime()

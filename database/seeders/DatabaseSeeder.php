@@ -17,7 +17,12 @@ final class DatabaseSeeder extends Seeder
     {
 
         $this->call(ShieldSeeder::class);
-        User::factory(10)->create();
+        User::factory(8)->create()->each(function (User $user) {
+            $user->assignRole('guru');
+        });
+        User::factory(2)->create()->each(function (User $user) {
+            $user->assignRole('operator');
+        });
         User::factory()->create([
             'name' => 'Admin',
             'email' => 'admin@admin.com',

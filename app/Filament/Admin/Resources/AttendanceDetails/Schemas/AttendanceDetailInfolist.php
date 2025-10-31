@@ -16,7 +16,7 @@ class AttendanceDetailInfolist
             ->components([
                 Section::make()
                     ->components([
-                        TextEntry::make('attendance.date')
+                        TextEntry::make('attendance.presence_date')
                             ->date()
                             ->label('Tanggal'),
                         TextEntry::make('student.name')
@@ -35,14 +35,17 @@ class AttendanceDetailInfolist
                             ->label('Lokasi')
                             ->placeholder('-'),
                         ImageEntry::make('photo_in')
+                            ->disk('public')
                             ->label('Foto Masuk')
                             ->placeholder('-'),
                         ImageEntry::make('photo_out')
                             ->label('Foto Keluar')
+                            ->disk('public')
                             ->placeholder('-'),
                     ])->columns(2)->columnSpanFull(),
                 Section::make('Detail Izin')
                     ->collapsible()
+                    ->visible(fn($record) => $record->leaveRequest != null)
                     ->components([
                         TextEntry::make('leaveRequest.reason')
                             ->label('Alasan')

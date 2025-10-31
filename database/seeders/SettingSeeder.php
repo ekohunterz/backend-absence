@@ -16,6 +16,8 @@ class SettingSeeder extends Seeder
         Setting::create([
             'school_name' => 'SMK Negeri 1 Contoh',
             'school_address' => 'Jl. Pendidikan No. 10, Kota Contoh',
+            'school_phone' => '08123456789',
+            'school_email' => '6oEoG@example.com',
             'latitude' => -6.2000000,
             'longitude' => 106.8166667,
             'radius' => 100, // in meters

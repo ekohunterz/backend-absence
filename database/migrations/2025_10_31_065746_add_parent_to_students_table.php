@@ -10,8 +10,9 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::table('attendance_details', function (Blueprint $table) {
-            $table->foreignId('leave_request_id')->nullable()->constrained('leave_requests')->onDelete('set null');
+        Schema::table('students', function (Blueprint $table) {
+            $table->string('parent_name')->nullable()->after('phone');
+            $table->string('parent_phone')->nullable()->after('parent_name');
         });
     }
 
@@ -20,8 +21,8 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::table('attendance_details', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('leave_request_id');
+        Schema::table('students', function (Blueprint $table) {
+            //
         });
     }
 };

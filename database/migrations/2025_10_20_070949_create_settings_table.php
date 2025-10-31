@@ -13,6 +13,9 @@ return new class extends Migration {
         Schema::create('settings', function (Blueprint $table) {
             $table->id();
             $table->string('school_name');
+            $table->string('school_logo')->nullable();
+            $table->string('school_phone')->nullable();
+            $table->string('school_email')->nullable();
             $table->string('school_address')->nullable();
             $table->decimal('latitude', 10, 7)->nullable();   // ex: -6.2000000
             $table->decimal('longitude', 10, 7)->nullable();  // ex: 106.8166667

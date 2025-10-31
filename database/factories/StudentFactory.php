@@ -29,6 +29,7 @@ class StudentFactory extends Factory
             'phone' => $this->faker->phoneNumber(),
             'password' => Hash::make('password'), // default password
             'grade_id' => Grade::all()->random()->id,
+            'parent_name' => $this->faker->name(),
             'remember_token' => null,
         ];
     }

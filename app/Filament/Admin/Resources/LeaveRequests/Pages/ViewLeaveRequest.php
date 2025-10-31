@@ -31,7 +31,7 @@ class ViewLeaveRequest extends ViewRecord
                     DB::transaction(function () use ($record) {
 
                         // Ubah status leave request jadi approved
-                        $record->update(['status' => 'approved']);
+                        $record->update(['status' => 'approved', 'verified_by' => auth()->user()->id]);
 
                         // Rentang tanggal izin (misal 2025-10-21 s.d 2025-10-23)
                         $period = \Carbon\CarbonPeriod::create($record->start_date, $record->end_date ?? $record->start_date);
@@ -76,7 +76,7 @@ class ViewLeaveRequest extends ViewRecord
                 ->modalButton('Tolak')
                 ->action(function ($record) {
                     DB::transaction(function () use ($record) {
-                        $record->update(['status' => 'rejected']);
+                        $record->update(['status' => 'rejected', 'verified_by' => auth()->user()->id]);
 
                         // Jika ditolak, tandai sebagai alpa
                         $attendance = Attendance::firstOrCreate(

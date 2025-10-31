@@ -9,6 +9,9 @@ class Setting extends Model
     protected $fillable = [
         'school_name',
         'school_address',
+        'school_logo',
+        'school_phone',
+        'school_email',
         'latitude',
         'longitude',
         'radius',

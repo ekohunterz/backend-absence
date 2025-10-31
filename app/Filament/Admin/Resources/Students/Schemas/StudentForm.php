@@ -69,9 +69,21 @@ class StudentForm
                         TextInput::make('phone')
                             ->label('Nomor Telepon')
                             ->tel(),
+                        TextInput::make('parent_name')
+                            ->label('Nama Orang Tua')
+                            ->required(),
+                        TextInput::make('parent_phone')
+                            ->label('Nomor Telepon Orang Tua')
+                            ->tel(),
                         Textarea::make('address')
-                            ->label('Alamat')
-                            ->columnSpanFull(),
+                            ->label('Alamat'),
+                        Select::make('grade_id')
+                            ->label('Kelas')
+                            ->relationship('grade', 'name')
+                            ->preload()
+                            ->searchable()
+                            ->required(),
+
 
                     ])->columnSpan('4'),
             ])->columns(6);
