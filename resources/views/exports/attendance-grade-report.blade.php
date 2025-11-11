@@ -12,6 +12,11 @@
         </td>
     </tr>
     <tr>
+        <td colspan="6" style="text-align: center; font-weight: bold; font-size: 16px; ">
+            {{ strtoupper($setting->school_name) }}
+        </td>
+    </tr>
+    <tr>
         <td colspan="6" style="text-align: center; font-size: 14px;">
             Bulan: {{ $monthName }} — Tahun Ajaran: {{ $academic_year }}
         </td>

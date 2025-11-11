@@ -8,11 +8,11 @@ class Attendance extends Model
 {
     protected $fillable = [
         'presence_date',
-        'start_time',
-        'end_time',
         'grade_id',
         'academic_year_id',
+        'semester_id',
         'verified_by',
+        'verified_at',
     ];
 
     protected $appends = [
@@ -28,9 +28,15 @@ class Attendance extends Model
         return $this->belongsTo(Grade::class);
     }
 
+
     public function academicYear()
     {
         return $this->belongsTo(AcademicYear::class);
+    }
+
+    public function semester()
+    {
+        return $this->belongsTo(Semester::class);
     }
 
     // teacher who verifies attendance

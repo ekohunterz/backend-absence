@@ -9,8 +9,8 @@
 
             @if ($verified)
                 <div class="text-right">
-                    <p class="text-green-600 font-semibold">Diverifikasi oleh: {{ $verified->name }}</p>
-                    <p>{{ $verified->created_at->diffForHumans() }}</p>
+                    <p class="text-green-600 font-semibold">Diverifikasi oleh: {{ $verified['name'] }}</p>
+                    <p>{{ $verified['at'] }}</p>
                 </div>
             @else
                 <p class="text-red-600 font-semibold">Belum diverifikasi</p>

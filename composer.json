@@ -20,6 +20,7 @@
         "filafly/brisk": "^1.0",
         "filafly/filament-phosphor-icons": "*",
         "filament/filament": "^4.0",
+        "filament/spatie-laravel-settings-plugin": "^4.0",
         "gboquizosanchez/filament-log-viewer": "^2.1",
         "jeffgreco13/filament-breezy": "^3.0",
         "laravel/framework": "^12.0",

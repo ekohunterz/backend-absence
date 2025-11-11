@@ -6,11 +6,14 @@ use App\Models\Grade;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 
+
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Student>
  */
 class StudentFactory extends Factory
 {
+
+    protected static ?string $password;
     /**
      * Define the model's default state.
      *
@@ -27,7 +30,7 @@ class StudentFactory extends Factory
             'birth_date' => $this->faker->date('Y-m-d', '2010-12-31'),
             'address' => $this->faker->address(),
             'phone' => $this->faker->phoneNumber(),
-            'password' => Hash::make('password'), // default password
+            'password' => self::$password ??= Hash::make('password'),
             'grade_id' => Grade::all()->random()->id,
             'parent_name' => $this->faker->name(),
             'remember_token' => null,

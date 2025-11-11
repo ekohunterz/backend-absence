@@ -28,8 +28,11 @@ class LeaveRequestResource extends Resource
     {
         return static::getModel()::where('status', 'pending')->count();
     }
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Permintaan Izin yang belum diverifikasi';
+    }
 
-    protected static ?string $navigationBadgeTooltip = 'Permintaan Izin yang belum diverifikasi';
 
     protected static ?string $recordTitleAttribute = 'date';
 
@@ -69,7 +72,7 @@ class LeaveRequestResource extends Resource
     {
         return [
             'index' => ListLeaveRequests::route('/'),
-            'create' => CreateLeaveRequest::route('/create'),
+            // 'create' => CreateLeaveRequest::route('/create'),
             'view' => ViewLeaveRequest::route('/{record}'),
             'edit' => EditLeaveRequest::route('/{record}/edit'),
         ];

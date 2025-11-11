@@ -13,20 +13,7 @@ class AttendanceForm
     {
         return $schema
             ->components([
-                DatePicker::make('presence_date')
-                    ->required(),
-                TimePicker::make('start_time')
-                    ->required(),
-                TimePicker::make('end_time')
-                    ->required(),
-                TextInput::make('grade_id')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('verified_by')
-                    ->numeric(),
-                TextInput::make('academic_year_id')
-                    ->required()
-                    ->numeric(),
+
             ]);
     }
 }

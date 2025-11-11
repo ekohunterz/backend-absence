@@ -31,7 +31,7 @@ class ViewLeaveRequest extends ViewRecord
                     DB::transaction(function () use ($record) {
 
                         // Ubah status leave request jadi approved
-                        $record->update(['status' => 'approved', 'verified_by' => auth()->user()->id]);
+                        $record->update(['status' => 'approved', 'verified_by' => auth()->user()->id, 'verified_at' => now()]);
 
                         // Rentang tanggal izin (misal 2025-10-21 s.d 2025-10-23)
                         $period = \Carbon\CarbonPeriod::create($record->start_date, $record->end_date ?? $record->start_date);
@@ -44,8 +44,6 @@ class ViewLeaveRequest extends ViewRecord
                                     'presence_date' => $date->format('Y-m-d'),
                                 ],
                                 [
-                                    'start_time' => now()->toTimeString(),
-                                    'end_time' => now()->addHours(8)->toTimeString(),
                                     'academic_year_id' => $record->academic_year_id,
                                 ]
                             );
@@ -76,7 +74,7 @@ class ViewLeaveRequest extends ViewRecord
                 ->modalButton('Tolak')
                 ->action(function ($record) {
                     DB::transaction(function () use ($record) {
-                        $record->update(['status' => 'rejected', 'verified_by' => auth()->user()->id]);
+                        $record->update(['status' => 'rejected', 'verified_by' => auth()->user()->id, 'verified_at' => now()]);
 
                         // Jika ditolak, tandai sebagai alpa
                         $attendance = Attendance::firstOrCreate(
@@ -85,8 +83,6 @@ class ViewLeaveRequest extends ViewRecord
                                 'presence_date' => now()->toDateString(),
                             ],
                             [ // hanya akan dieksekusi jika belum ada
-                                'start_time' => now()->toTimeString(),
-                                'end_time' => now()->addHours(8)->toTimeString(),
                                 'academic_year_id' => $record->academic_year_id,
                             ]
                         );

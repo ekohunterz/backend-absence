@@ -3,38 +3,56 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AcademicYear extends Model
 {
     protected $fillable = [
-        'start_year',
-        'end_year',
-        'semester',
+        'name',
+        'start_date',
+        'end_date',
         'is_active',
     ];
 
-    protected $appends = [
-        'name',
+    protected $casts = [
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'is_active' => 'boolean',
     ];
 
-    protected static function booted()
+
+
+
+    /**
+     * Relationship to semesters
+     */
+    public function semesters(): HasMany
     {
-        static::saving(function ($model) {
-            // Jika tahun ini di-set aktif, nonaktifkan semua tahun lain
-            if ($model->is_active) {
-                static::where('id', '!=', $model->id)
-                    ->update(['is_active' => false]);
-            }
-        });
+        return $this->hasMany(Semester::class);
     }
 
-    public function getNameAttribute(): string
-    {
-        return $this->start_year . '/' . $this->end_year . ' ' . $this->semester;
-    }
-
-    public function attendances()
+    /**
+     * Relationship to attendances
+     */
+    public function attendances(): HasMany
     {
         return $this->hasMany(Attendance::class);
+    }
+
+    /**
+     * Scope for active academic year
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Activate this academic year and deactivate others
+     */
+    public function activate(): void
+    {
+        static::where('id', '!=', $this->id)->update(['is_active' => false]);
+        $this->update(['is_active' => true]);
     }
 }

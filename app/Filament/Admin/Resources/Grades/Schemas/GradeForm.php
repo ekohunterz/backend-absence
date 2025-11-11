@@ -21,6 +21,6 @@ class GradeForm
                     ->preload()
                     ->searchable()
                     ->required(),
-            ]);
+            ])->columns(1);
     }
 }

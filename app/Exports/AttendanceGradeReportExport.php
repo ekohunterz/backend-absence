@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Models\Setting;
 use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
 
@@ -11,6 +12,7 @@ class AttendanceGradeReportExport implements FromView
     public $reports;
     public $month;
     public $academic_year;
+    public Setting $setting;
 
 
     public function __construct($reports, $month, $academic_year)
@@ -18,6 +20,7 @@ class AttendanceGradeReportExport implements FromView
         $this->reports = $reports;
         $this->month = $month;
         $this->academic_year = $academic_year;
+        $this->setting = Setting::first();
     }
 
     public function view(): View
@@ -26,6 +29,7 @@ class AttendanceGradeReportExport implements FromView
             'reports' => $this->reports,
             'month' => $this->month,
             'academic_year' => $this->academic_year,
+            'setting' => $this->setting
         ]);
     }
 }

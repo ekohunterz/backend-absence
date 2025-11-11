@@ -18,19 +18,12 @@ class LeaveRequestForm
             ->components([
                 Select::make('student_id')
                     ->relationship('student', 'name')
-                    ->reactive()
-                    ->afterStateUpdated(function ($set, $state) {
-                        if ($state) {
-                            $grade = Student::find($state)->grade_id;
-                            $set('grade_id', $grade);
-                        }
-                    })
-                    ->required(),
-                Select::make('grade_id')
-                    ->relationship('grade', 'name')
+                    ->label('Siswa')
                     ->required(),
                 Select::make('academic_year_id')
-                    ->relationship('academic_year', 'start_year')
+                    ->relationship('academic_year', 'name')
+                    ->label('Tahun Ajaran')
+                    ->getOptionLabelFromRecordUsing(fn($record) => $record->name . ' (' . $record->semester . ')')
                     ->required(),
                 DatePicker::make('start_date')
                     ->required(),
@@ -51,8 +44,6 @@ class LeaveRequestForm
                     ->options(['pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'])
                     ->default('pending')
                     ->required(),
-                TextInput::make('verified_by')
-                    ->numeric(),
             ]);
     }
 }

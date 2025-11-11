@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Student;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class StudentSeeder extends Seeder
 {
@@ -17,11 +18,11 @@ class StudentSeeder extends Seeder
         Student::create([
             'nis' => '2025001',
             'name' => 'John Doe',
-            'email' => 'Hr9yA@example.com',
+            'email' => 'john@example.com',
             'gender' => 'L',
             'birth_date' => '2009-05-14',
             'phone' => '08123456789',
-            'password' => bcrypt('password'),
+            'password' => Hash::make('password'),
             'status' => 'aktif',
             'grade_id' => 1,
         ]);

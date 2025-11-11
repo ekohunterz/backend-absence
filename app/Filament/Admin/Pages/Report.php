@@ -8,6 +8,9 @@ use App\Models\AcademicYear;
 use App\Models\AttendanceDetail;
 use App\Models\Grade;
 use App\Models\Major;
+use App\Models\Semester;
+use App\Models\Student;
+use App\Services\ReportService;
 use Carbon\Carbon;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Page;
@@ -24,7 +27,6 @@ class Report extends Page implements HasSchemas
 {
     use InteractsWithSchemas;
 
-    public ?array $data = [];
     protected string $view = 'filament.admin.pages.report';
 
     protected static ?string $navigationLabel = 'Rekap';
@@ -37,163 +39,146 @@ class Report extends Page implements HasSchemas
 
     protected static ?int $navigationSort = 4;
 
-    public ?string $activeTab = 'tab1';
-
-    public ?int $grade_id = null;
-    public ?int $month = null;
-
-    public ?int $major_id = null;
-
-    public ?int $academic_year_id = null;
-
-    public $academic_years;
-    public $grades;
-    public $majors;
-    public $reports = [];
-
-    public $report_grades = [];
-
+    public ?array $data = [];
+    public $selectedSemesterId;
+    public $selectedGradeId;
+    public ?Semester $semester = null;
+    public ?Grade $grade = null;
+    public $reportData = [];
+    public $statistics = [];
+    public $maxDays = 31;
 
     public function mount(): void
     {
-        $this->grades = Grade::orderBy('name')->get();
-        $this->majors = Major::all();
-        $this->month = (int) now()->translatedFormat('m');
-        $this->academic_years = AcademicYear::all();
-        $this->academic_year_id = $this->academic_years->where('is_active', true)->first()->id;
-        $this->loadReportGrades();
-    }
+        // Get active semester
+        $activeSemester = Semester::where('is_active', true)->first();
+        $this->selectedSemesterId = $activeSemester?->id ?? Semester::first()?->id;
 
-    protected function getAcademicYearFormComponent(): Component
-    {
-        return Select::make('academic_year_id')
-            ->hiddenLabel()
-            ->placeholder('Pilih Tahun Ajaran')
-            ->options(
-                $this->academic_years
-                    ->pluck('name', 'id')
-                    ->toArray()
-            )
-            ->searchable()
-            ->afterStateUpdated(fn($state) => $this->academic_year_id = $state);
-    }
+        // Get first grade
+        $this->selectedGradeId = Grade::first()?->id;
 
-    protected function getMonthFormComponents(): Component
-    {
-        return Select::make('month')
-            ->hiddenLabel()
-            ->placeholder('Tampilkan Semua')
-            ->options(
-                ['' => 'Tampilkan Semua'] +
-                collect(range(1, 12))
-                    ->mapWithKeys(fn($m) => [
-                        $m => Carbon::create()->month($m)->translatedFormat('F'),
-                    ])
-                    ->toArray()
-            )
-            ->searchable()
-            ->default(now()->month) // otomatis bulan saat ini
-            ->afterStateUpdated(fn($state) => $this->month = $state);
+        $this->form->fill([
+            'semester' => $this->selectedSemesterId,
+            'grade' => $this->selectedGradeId,
+        ]);
 
+        $this->loadReportData();
     }
 
     public function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Select::make('grade_id')
-                    ->hiddenLabel()
-                    ->placeholder('Pilih Kelas')
-                    ->options(
-                        $this->grades
-                            ->pluck('name', 'id')
-                            ->toArray()
-                    )
+                Select::make('semester')
+                    ->label('Semester')
+                    ->options(function () {
+                        return Semester::with('academicYear')
+                            ->get()
+                            ->mapWithKeys(function ($semester) {
+                                return [$semester->id => $semester->academicYear->name . ' - ' . $semester->name];
+                            });
+                    })
+                    ->default($this->selectedSemesterId)
+                    ->native(false)
                     ->searchable()
-                    ->afterStateUpdated(fn($state) => $this->grade_id = $state), // sinkronkan ke variabel
-                $this->getAcademicYearFormComponent(),
-                $this->getMonthFormComponents(),
-            ])->columns(3);
-    }
+                    ->reactive()
+                    ->afterStateUpdated(fn($state) => $this->updateData($state, $this->selectedGradeId)),
 
-    public function form_major(Schema $schema): Schema
-    {
-        return $schema
-            ->components([
-                Select::make('major_id')
-                    ->hiddenLabel()
-                    ->placeholder('Pilih Jurusan')
-                    ->options(
-                        $this->majors
-                            ->pluck('name', 'id')
-                            ->toArray()
-                    )
+                Select::make('grade')
+                    ->label('Kelas')
+                    ->options(Grade::orderBy('name')->pluck('name', 'id'))
+                    ->default($this->selectedGradeId)
+                    ->native(false)
                     ->searchable()
-                    ->afterStateUpdated(fn($state) => $this->major_id = $state),
-                $this->getAcademicYearFormComponent(),
-                $this->getMonthFormComponents(),
-            ])->columns(3);
+                    ->reactive()
+                    ->afterStateUpdated(fn($state) => $this->updateData($this->selectedSemesterId, $state)),
+            ])
+            ->columns(2)
+            ->statePath('data');
     }
 
-
-    public function loadReport(): void
+    public function updateData($semesterId, $gradeId): void
     {
-        if (!$this->grade_id)
-            return;
+        $this->selectedSemesterId = $semesterId;
+        $this->selectedGradeId = $gradeId;
 
-        $this->reports = AttendanceDetail::query()
-            ->whereHas('attendance', function ($q) {
-                $q->where('grade_id', $this->grade_id)
-                    ->where('academic_year_id', $this->academic_year_id)
-                    ->when($this->month, function ($q) {
-                        $q->whereMonth('presence_date', $this->month);
-                    });
-            })
-            ->with(['student'])
-            ->get()
-            ->groupBy('student_id')
-            ->map(function ($records) {
-                $student = $records->first()->student;
-                return [
-                    'name' => $student->name,
-                    'nis' => $student->nis,
-                    'hadir' => $records->where('status', 'hadir')->count(),
-                    'izin' => $records->where('status', 'izin')->count(),
-                    'sakit' => $records->where('status', 'sakit')->count(),
-                    'alpa' => $records->where('status', 'alpa')->count(),
-                ];
-            })
-            ->values();
+        $this->loadReportData();
     }
 
-    public function loadReportGrades(): void
+    protected function loadReportData(): void
     {
-        $this->report_grades = AttendanceDetail::query()
-            ->whereHas('attendance', function ($q) {
-                $q->where('academic_year_id', $this->academic_year_id)
-                    ->when($this->month, function ($q) {
-                        $q->whereMonth('presence_date', $this->month);
-                    })->when($this->major_id, function ($q) {
-                        $q->whereHas('grade', function ($q) {
-                            $q->where('major_id', $this->major_id);
-                        });
+        $reportService = new ReportService($this->selectedSemesterId, $this->selectedGradeId);
+        $this->reportData = $reportService->loadReportData()['reportData'];
+        $this->statistics = $reportService->loadReportData()['statistics'];
+    }
 
-                    });
-            })
-            ->with(['attendance.grade'])
-            ->get()
-            ->groupBy('attendance.grade_id')
-            ->map(function ($records) {
-                $grade = $records->first()->attendance->grade;
-                return [
-                    'name' => $grade->name,
-                    'hadir' => $records->where('status', 'hadir')->count(),
-                    'izin' => $records->where('status', 'izin')->count(),
-                    'sakit' => $records->where('status', 'sakit')->count(),
-                    'alpa' => $records->where('status', 'alpa')->count(),
-                ];
-            })
-            ->values();
+    public function getStatusColor(?string $status): string
+    {
+        if (!$status) {
+            return 'bg-gray-100 dark:bg-gray-800';
+        }
+
+        return match ($status) {
+            'hadir' => 'bg-green-500',
+            'sakit' => 'bg-yellow-500',
+            'izin' => 'bg-blue-500',
+            'alpa' => 'bg-red-500',
+            default => 'bg-gray-200 dark:bg-gray-700',
+        };
+    }
+
+    public function getStatusLabel(?string $status): string
+    {
+        if (!$status) {
+            return '-';
+        }
+
+        return match ($status) {
+            'hadir' => 'H',
+            'sakit' => 'S',
+            'izin' => 'I',
+            'alpa' => 'A',
+            default => '-',
+        };
+    }
+
+    public function getSemesterLabel(): string
+    {
+        if (!$this->semester) {
+            return '-';
+        }
+
+        return $this->semester->academicYear->name . ' - ' . $this->semester->name;
+    }
+
+    public function getGradeLabel(): string
+    {
+        return $this->grade?->name ?? '-';
+    }
+
+    public function exportExcel()
+    {
+        // TODO: Implement Excel export
+        \Filament\Notifications\Notification::make()
+            ->title('Export Excel')
+            ->body('Fitur export akan segera tersedia')
+            ->info()
+            ->send();
+    }
+
+    public function exportPdf()
+    {
+        // TODO: Implement PDF export
+        \Filament\Notifications\Notification::make()
+            ->title('Export PDF')
+            ->body('Fitur export akan segera tersedia')
+            ->info()
+            ->send();
+    }
+
+    public function print()
+    {
+        $this->js('window.print()');
     }
 
     public function exportToExcel()

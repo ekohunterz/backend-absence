@@ -15,7 +15,8 @@ class ListMajors extends ListRecords
         return [
             CreateAction::make()
                 ->label('Tambah Jurusan')
-                ->icon('heroicon-o-plus'),
+                ->icon('heroicon-o-plus')
+                ->modalWidth('md'),
         ];
     }
 }

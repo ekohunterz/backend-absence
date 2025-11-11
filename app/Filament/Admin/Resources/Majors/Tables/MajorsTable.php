@@ -39,7 +39,8 @@ class MajorsTable
             ->recordActions([
 
                 EditAction::make()->label('')
-                    ->tooltip('Ubah'),
+                    ->tooltip('Ubah')
+                    ->modalWidth('md'),
                 DeleteAction::make()->label('')
                     ->tooltip('Hapus'),
             ])

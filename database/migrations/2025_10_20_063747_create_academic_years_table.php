@@ -12,9 +12,9 @@ return new class extends Migration {
     {
         Schema::create('academic_years', function (Blueprint $table) {
             $table->id();
-            $table->year('start_year');
-            $table->year('end_year');
-            $table->enum('semester', ['Ganjil', 'Genap']);
+            $table->string('name')->unique();
+            $table->date('start_date');
+            $table->date('end_date');
             $table->boolean('is_active')->default(false);
             $table->timestamps();
         });

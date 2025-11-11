@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
-class Student extends Authenticatable implements JWTSubject
+class Student extends Authenticatable implements JWTSubject, FilamentUser
 {
     /** @use HasFactory<\Database\Factories\StudentFactory> */
     use HasFactory;
@@ -33,6 +35,22 @@ class Student extends Authenticatable implements JWTSubject
         'password',
         'remember_token',
     ];
+
+    public function getFilamentAvatarUrl(): string
+    {
+        if ($this->avatar_url) {
+            return asset('storage/' . $this->avatar_url);
+        }
+        $hash = md5(mb_strtolower(mb_trim($this->email)));
+
+        return 'https://www.gravatar.com/avatar/' . $hash . '?d=mp&r=g&s=250';
+
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
 
     protected function casts(): array
     {

@@ -17,20 +17,19 @@ class AttendanceInfolist
                         TextEntry::make('presence_date')
                             ->label('Tanggal')
                             ->date(),
-                        TextEntry::make('start_time')
-                            ->label('Mulai')
-                            ->time(),
-                        TextEntry::make('end_time')
-                            ->label('Selesai')
-                            ->time(),
                         TextEntry::make('grade.name')
                             ->label('Kelas'),
                         TextEntry::make('verifier.name')
-                            ->label('Verifikasi Oleh')
+                            ->label('Diverifikasi Oleh')
                             ->placeholder('-'),
-                        TextEntry::make('academicYear.start_year')
-                            ->label('Tahun Ajaran & Semester')
-                            ->formatStateUsing(fn($state, $record): string => $state . '/' . $state + 1 . ' (' . $record->academicYear->semester . ')'),
+                        TextEntry::make('verified_at')
+                            ->label('Diverifikasi Pada')
+                            ->placeholder('-')
+                            ->dateTime(),
+                        TextEntry::make('academicYear.name')
+                            ->label('Tahun Ajaran'),
+                        TextEntry::make('semester.name')
+                            ->label('Semester'),
                     ])
                     ->columns(2)
                     ->columnSpanFull(),

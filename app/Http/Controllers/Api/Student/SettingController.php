@@ -19,7 +19,7 @@ class SettingController extends Controller
 
         if ($setting) {
             // tambahkan atribut academic_year ke dalam setting
-            $setting->academic_year = $academicYear?->start_year . '/' . $academicYear?->end_year . ' ' . $academicYear?->semester;
+            $setting->academic_year = $academicYear?->name . ' (' . $academicYear?->semester . ')';
         }
 
         return response()->json($setting);

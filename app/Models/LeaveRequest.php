@@ -9,6 +9,7 @@ class LeaveRequest extends Model
     protected $fillable = [
         'student_id',
         'grade_id',
+        'semester_id',
         'academic_year_id',
         'start_date',
         'end_date',
@@ -17,6 +18,7 @@ class LeaveRequest extends Model
         'proof_file',
         'status',
         'verified_by',
+        'verified_at',
     ];
 
     public function student()
@@ -29,7 +31,11 @@ class LeaveRequest extends Model
         return $this->belongsTo(Grade::class);
     }
 
-    public function academic_year()
+    public function semester()
+    {
+        return $this->belongsTo(Semester::class);
+    }
+    public function academicYear()
     {
         return $this->belongsTo(AcademicYear::class);
     }

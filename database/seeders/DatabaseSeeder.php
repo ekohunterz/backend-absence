@@ -34,6 +34,7 @@ final class DatabaseSeeder extends Seeder
             MajorSeeder::class,
             GradeSeeder::class,
             AcademicYearSeeder::class,
+            SemesterSeeder::class,
             StudentSeeder::class,
             SettingSeeder::class,
         ]);

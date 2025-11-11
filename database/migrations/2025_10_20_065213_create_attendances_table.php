@@ -13,11 +13,11 @@ return new class extends Migration {
         Schema::create('attendances', function (Blueprint $table) {
             $table->id();
             $table->date('presence_date');
-            $table->time('start_time');
-            $table->time('end_time');
             $table->foreignId('grade_id')->constrained('grades')->onDelete('cascade');
             $table->foreignId('verified_by')->nullable()->constrained('users')->onDelete('set null');
-            $table->foreignId('academic_year_id')->constrained('academic_years')->onDelete('cascade');
+            $table->dateTime('verified_at')->nullable();
+            $table->foreignId('academic_year_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('semester_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
         });
     }

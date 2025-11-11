@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\AcademicYears;
 use App\Filament\Admin\Resources\AcademicYears\Pages\CreateAcademicYear;
 use App\Filament\Admin\Resources\AcademicYears\Pages\EditAcademicYear;
 use App\Filament\Admin\Resources\AcademicYears\Pages\ListAcademicYears;
+use App\Filament\Admin\Resources\AcademicYears\Pages\ViewAcademicYear;
 use App\Filament\Admin\Resources\AcademicYears\Schemas\AcademicYearForm;
 use App\Filament\Admin\Resources\AcademicYears\Tables\AcademicYearsTable;
 use App\Models\AcademicYear;
@@ -25,7 +26,7 @@ class AcademicYearResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    protected static ?string $recordTitleAttribute = 'start_year';
+    protected static ?string $recordTitleAttribute = 'name';
 
     protected static ?string $pluralLabel = 'Tahun Akademik';
 
@@ -54,8 +55,8 @@ class AcademicYearResource extends Resource
     {
         return [
             'index' => ListAcademicYears::route('/'),
-            // 'create' => CreateAcademicYear::route('/create'),
-            // 'edit' => EditAcademicYear::route('/{record}/edit'),
+            'create' => CreateAcademicYear::route('/create'),
+            'edit' => EditAcademicYear::route('/{record}/edit'),
         ];
     }
 }

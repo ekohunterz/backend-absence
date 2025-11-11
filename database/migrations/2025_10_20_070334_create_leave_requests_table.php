@@ -14,7 +14,8 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('student_id')->constrained('students')->onDelete('cascade');
             $table->foreignId('grade_id')->constrained('grades')->onDelete('cascade');
-            $table->foreignId('academic_year_id')->constrained('academic_years')->onDelete('cascade');
+            $table->foreignId('academic_year_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('semester_id')->nullable()->constrained()->nullOnDelete();
             $table->date('start_date');
             $table->date('end_date')->nullable();
             $table->enum('type', ['sakit', 'izin']);
@@ -22,6 +23,7 @@ return new class extends Migration {
             $table->string('proof_file')->nullable(); // uploaded file (image/pdf)
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->foreignId('verified_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->dateTime('verified_at')->nullable();
             $table->timestamps();
         });
     }

@@ -17,7 +17,7 @@ class LeaveRequestInfolist
                     ->label('Nama Siswa'),
                 TextEntry::make('grade.name')
                     ->label('Kelas'),
-                TextEntry::make('academic_year.name')
+                TextEntry::make('academicYear.name')
                     ->label('Tahun Ajaran'),
                 TextEntry::make('start_date')
                     ->label('Tanggal Mulai')
@@ -27,14 +27,26 @@ class LeaveRequestInfolist
                     ->date(),
                 TextEntry::make('type')
                     ->label('Jenis')
-                    ->badge(),
+                    ->badge()
+                    ->colors([
+                        'info' => 'izin',
+                        'danger' => 'sakit',
+                    ]),
                 TextEntry::make('reason')
-                    ->label('Alasan')
+                    ->label('Alasan/Keterangan lengkap')
                     ->placeholder('-'),
                 TextEntry::make('status')
-                    ->badge(),
+                    ->badge()
+                    ->colors([
+                        'success' => 'approved',
+                        'warning' => 'pending',
+                    ]),
                 TextEntry::make('verifier.name')
-                    ->label('Verifikasi Oleh')
+                    ->label('Diverifikasi Oleh')
+                    ->placeholder('-'),
+                TextEntry::make('verified_at')
+                    ->label('Diverifikasi Pada')
+                    ->dateTime()
                     ->placeholder('-'),
                 PanZoomEntry::make('proof_file')
                     ->imageUrl(fn($record) => asset('storage/' . $record->proof_file))

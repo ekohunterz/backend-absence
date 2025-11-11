@@ -15,7 +15,8 @@ class ListGrades extends ListRecords
         return [
             CreateAction::make()
                 ->label('Tambah Kelas')
-                ->icon('heroicon-o-plus'),
+                ->icon('heroicon-o-plus')
+                ->modalWidth('md'),
         ];
     }
 }

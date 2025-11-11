@@ -26,9 +26,10 @@ class LeaveRequestsTable
                     ->label('Kelas')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('academic_year.start_year')
+                TextColumn::make('academicYear.name')
                     ->label('Tahun Ajaran')
                     ->searchable()
+                    ->description(fn($record): string => $record->semester->name)
                     ->sortable(),
                 TextColumn::make('start_date')
                     ->label('Tanggal')

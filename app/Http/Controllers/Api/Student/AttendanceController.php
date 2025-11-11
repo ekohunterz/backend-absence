@@ -31,8 +31,6 @@ class AttendanceController extends Controller
 
         return response()->json([
             'date' => $attendance->presence_date,
-            'start_time' => $attendance->start_time,
-            'end_time' => $attendance->end_time,
             'status' => $detail->status ?? 'belum absen',
             'check_in_time' => $detail->check_in_time,
             'check_out_time' => $detail->check_out_time,
@@ -44,7 +42,7 @@ class AttendanceController extends Controller
         $student = auth('api')->user();
         $today = Carbon::today();
 
-        if ($student->is_present($today)) {
+        if ($student->is_present()) {
             return response()->json(['message' => 'Anda sudah absen hari ini'], 400);
         }
 
@@ -65,8 +63,6 @@ class AttendanceController extends Controller
                 'presence_date' => $today,
             ],
             [
-                'start_time' => now()->format('H:i:s'),
-                'end_time' => now()->addHours(8)->format('H:i:s'),
                 'academic_year_id' => AcademicYear::where('is_active', true)->first()->id
             ]
         );

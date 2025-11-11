@@ -26,26 +26,23 @@ class AttendancesTable
                     ->date('d M Y')
                     ->timezone('Asia/Jakarta')
                     ->sortable(),
-                TextColumn::make('start_time')
-                    ->label('Mulai')
-                    ->time()
-                    ->sortable(),
-                TextColumn::make('end_time')
-                    ->label('Selesai')
-                    ->time()
-                    ->sortable(),
                 TextColumn::make('grade.name')
                     ->label('Kelas')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('verifier.name')
-                    ->label('Verifikasi Oleh')
-                    ->numeric()
+                TextColumn::make('verified_at')
+                    ->label('Diverifikasi Pada')
+                    ->dateTime()
+                    ->placeholder('-')
                     ->sortable(),
-                TextColumn::make('academicYear.start_year')
+                TextColumn::make('verifier.name')
+                    ->label('Diverifikasi Oleh')
+                    ->numeric()
+                    ->placeholder('-')
+                    ->sortable(),
+                TextColumn::make('academicYear.name')
                     ->label('Tahun Ajaran & Semester')
-                    ->formatStateUsing(fn($state): string => $state . '/' . $state + 1)
-                    ->description(fn($record): string => $record->academicYear->semester)
+                    ->description(fn($record) => $record->semester->getTypeLabel())
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()
@@ -63,12 +60,6 @@ class AttendancesTable
                     ->preload()
                     ->multiple()
                     ->relationship('grade', 'name'),
-                SelectFilter::make('academic_year_id')
-                    ->label('Tahun Ajaran')
-                    ->options(AcademicYear::all()->pluck('name', 'id'))
-                    ->searchable()
-                    ->preload()
-                    ->multiple(),
                 Filter::make('created_at')
                     ->schema([
                         DatePicker::make('created_from')->label('Dari Tanggal'),
@@ -78,11 +69,11 @@ class AttendancesTable
                         return $query
                             ->when(
                                 $data['created_from'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('presence_date', '>=', $date),
                             )
                             ->when(
                                 $data['created_until'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
+                                fn(Builder $query, $date): Builder => $query->whereDate('presence_date', '<=', $date),
                             );
                     })
 

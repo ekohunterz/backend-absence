@@ -40,10 +40,10 @@ class AttendanceChart extends ChartWidget
                         $totalAlpa,
                     ],
                     'backgroundColor' => [
-                        'rgb(0, 64, 2)',
-                        'rgb(255, 205, 86)',
-                        'rgb(255, 99, 132)',
-                        'rgb(156, 10, 0)',
+                        '#4caf50',
+                        '#03a9f4',
+                        '#ff9800',
+                        '#ef5350',
                     ],
 
                 ],

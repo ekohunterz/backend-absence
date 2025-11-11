@@ -2,11 +2,14 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Jobs\SendAttendanceWhatsAppJob;
 use App\Models\AcademicYear;
 use App\Models\Attendance;
 use App\Models\Grade;
+use App\Models\Semester;
 use App\Models\Student;
 use App\Services\WhatsAppService;
+use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -98,7 +101,10 @@ class SubmitPresence extends Page implements HasSchemas
             ->get();
 
         if ($attendance) {
-            $this->verified = $attendance->verifier;
+            $this->verified = [
+                'name' => $attendance->verifier?->name,
+                'at' => Carbon::parse($attendance->verified_at)->diffForHumans(),
+            ];
             $attendanceMap = $attendance->details->pluck('status', 'student_id')->toArray();
 
             $this->students = $students->map(fn($s) => [
@@ -121,7 +127,7 @@ class SubmitPresence extends Page implements HasSchemas
     }
 
 
-    public function save(): void
+    public function save()
     {
         DB::beginTransaction();
 
@@ -133,15 +139,16 @@ class SubmitPresence extends Page implements HasSchemas
                     'presence_date' => $this->presence_date,
                 ],
                 [ // hanya akan dieksekusi jika belum ada
-                    'start_time' => now()->toTimeString(),
-                    'end_time' => now()->addHours(8)->toTimeString(),
+                    'verified_at' => now(),
                     'verified_by' => auth()->id(),
-                    'academic_year_id' => AcademicYear::where('is_active', true)->first()->id,
+                    'semester_id' => Semester::where('is_active', true)->first()->id,
+                    'academic_year_id' => AcademicYear::where('is_active', true)->first()->id
                 ]
             );
 
-            // Simpan detail & kirim notifikasi
-            $whatsappService = new WhatsAppService();
+            $notificationCount = 0;
+            $date = now()->format('d F Y');
+            $time = now()->format('H:i');
 
             // update detail tiap siswa
             foreach ($this->students as $student) {
@@ -159,16 +166,18 @@ class SubmitPresence extends Page implements HasSchemas
                 $studentModel = Student::find($student['id']);
 
                 if ($studentModel && $studentModel->parent_phone) {
-                    dispatch(function () use ($whatsappService, $studentModel, $student) {
-                        $whatsappService->sendAttendanceNotification(
-                            phoneNumber: $studentModel->parent_phone,
-                            studentName: $studentModel->name,
-                            status: $student['status'],
-                            date: now()->format('d F Y'),
-                            time: now()->format('H:i'),
-                            gradeName: $studentModel->grade->name
-                        );
-                    })->afterResponse();
+                    // Dispatch job ke queue
+                    SendAttendanceWhatsAppJob::dispatch(
+                        student: $studentModel,
+                        status: $student['status'],
+                        date: $date,
+                        time: $time,
+                        gradeName: $studentModel->grade->name
+                    )
+                        ->onQueue('whatsapp') // Queue khusus untuk WhatsApp
+                        ->delay(now()->addSeconds($notificationCount * 2)); // Delay bertahap 2 detik
+
+                    $notificationCount++;
                 }
             }
 
@@ -189,7 +198,7 @@ class SubmitPresence extends Page implements HasSchemas
                 ->send();
         }
 
-        redirect()->route('filament.admin.pages.submit-presence', ['grade' => $this->grade->id]);
+        return $this->redirect('/admin/submit-presence?grade=' . $this->grade_id, 'true');
     }
 
 
