@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Livewire\CustomPersonalInfo;
+use App\Models\Setting;
 use App\Models\Student;
 use Awcodes\LightSwitch\LightSwitchPlugin;
 use DiogoGPinto\AuthUIEnhancer\AuthUIEnhancerPlugin;
@@ -29,8 +31,10 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Jeffgreco13\FilamentBreezy\BreezyCore;
+
 
 class StudentPanelProvider extends PanelProvider
 {
@@ -49,11 +53,13 @@ class StudentPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Student/Widgets'), for: 'App\Filament\Student\Widgets')
             ->widgets([
-                AccountWidget::class,
-                FilamentInfoWidget::class,
+
             ])
             ->login()
             ->defaultThemeMode(ThemeMode::Light)
+            ->brandName(Setting::first()->school_name ?? 'School')
+            ->brandLogo(Setting::first()->school_logo ? Storage::url(Setting::first()->school_logo) : asset('logo.png'))
+            ->favicon(Setting::first()->school_logo ? Storage::url(Setting::first()->school_logo) : asset('favicon.ico'))
             ->colors([
                 'primary' => Color::Emerald,
             ])
@@ -80,11 +86,10 @@ class StudentPanelProvider extends PanelProvider
                         slug: 'profile',
                         userMenuLabel: 'Profile',
                     )
+                    ->myProfileComponents([
+                        'personal_info' => CustomPersonalInfo::class
+                    ])
                     ->enableBrowserSessions(),
-                FilamentDeveloperLoginsPlugin::make()
-                    ->enabled(app()->environment('local'))
-                    ->switchable(true)
-                    ->users(fn() => Student::pluck('email', 'name')->toArray()),
             ])
             ->middleware([
                 EncryptCookies::class,

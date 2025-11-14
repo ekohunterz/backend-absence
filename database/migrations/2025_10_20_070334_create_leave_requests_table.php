@@ -12,19 +12,25 @@ return new class extends Migration {
     {
         Schema::create('leave_requests', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('student_id')->constrained('students')->onDelete('cascade');
-            $table->foreignId('grade_id')->constrained('grades')->onDelete('cascade');
-            $table->foreignId('academic_year_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('grade_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('academic_year_id')->constrained()->cascadeOnDelete();
             $table->foreignId('semester_id')->nullable()->constrained()->nullOnDelete();
+            $table->enum('type', ['izin', 'sakit']);
+            $table->text('reason');
             $table->date('start_date');
-            $table->date('end_date')->nullable();
-            $table->enum('type', ['sakit', 'izin']);
-            $table->text('reason')->nullable();
-            $table->string('proof_file')->nullable(); // uploaded file (image/pdf)
+            $table->date('end_date');
+            $table->string('proof_file')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
-            $table->foreignId('verified_by')->nullable()->constrained('users')->onDelete('set null');
-            $table->dateTime('verified_at')->nullable();
+            $table->text('response_note')->nullable();
+            $table->foreignId('responded_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('responded_at')->nullable();
             $table->timestamps();
+
+            // Indexes
+            $table->index(['student_id', 'status']);
+            $table->index(['start_date', 'end_date']);
+            $table->index('created_at');
         });
     }
 

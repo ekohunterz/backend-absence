@@ -21,6 +21,7 @@ class GradesTable
                 TextColumn::make('name')
                     ->label('Nama Kelas')
                     ->sortable()
+                    ->weight('semibold')
                     ->searchable(),
                 TextColumn::make('major.name')
                     ->label('Jurusan')

@@ -9,6 +9,8 @@ use App\Filament\Admin\Resources\Majors\MajorResource;
 use App\Filament\Admin\Resources\Students\StudentResource;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Filament\Admin\Widgets\LatestAccessLogs;
+use App\Livewire\CustomUserInfo;
+use App\Models\Setting;
 use App\Models\User;
 use Awcodes\LightSwitch\Enums\Alignment;
 use Awcodes\LightSwitch\LightSwitchPlugin;
@@ -35,6 +37,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Jeffgreco13\FilamentBreezy\BreezyCore;
 use SolutionForest\FilamentPanzoom\FilamentPanzoomPlugin;
@@ -49,6 +52,9 @@ final class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->authGuard('web')
             ->login()
+            ->brandName(Setting::first()->school_name ?? 'School')
+            ->brandLogo(Setting::first()->school_logo ? Storage::url(Setting::first()->school_logo) : asset('logo.png'))
+            ->favicon(Setting::first()->school_logo ? Storage::url(Setting::first()->school_logo) : asset('favicon.ico'))
             ->defaultThemeMode(ThemeMode::Light)
             ->colors([
                 'primary' => Color::Blue,
@@ -94,6 +100,9 @@ final class AdminPanelProvider extends PanelProvider
                         slug: 'profile',
                         userMenuLabel: 'Profile',
                     )
+                    ->myProfileComponents([
+                        'personal_info' => CustomUserInfo::class
+                    ])
                     ->enableBrowserSessions(),
                 OverlookPlugin::make()
                     ->sort(2)
@@ -127,6 +136,7 @@ final class AdminPanelProvider extends PanelProvider
                 FilamentLogViewerPlugin::make()
                     ->navigationGroup('Administration')
                     ->navigationSort(4)
+                    ->authorize(fn(): bool => auth()->user()->hasRole('super_admin'))
                     ->navigationIcon(Phosphor::FileArchiveDuotone),
                 FilamentDeveloperLoginsPlugin::make()
                     ->enabled(app()->environment('local'))

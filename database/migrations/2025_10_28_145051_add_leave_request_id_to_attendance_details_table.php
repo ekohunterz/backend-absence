@@ -11,10 +11,10 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('attendance_details', function (Blueprint $table) {
-            $table->foreignId('leave_request_id')
+            $table->foreignId('leave_request_id')->after('student_id')
                 ->nullable()
                 ->constrained('leave_requests')
-                ->nullOnDelete(); // jika leave request dihapus, set null
+                ->nullOnDelete();
         });
     }
 

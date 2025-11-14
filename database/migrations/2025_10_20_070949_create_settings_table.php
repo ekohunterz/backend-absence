@@ -22,6 +22,7 @@ return new class extends Migration {
             $table->integer('radius')->default(50); // in meters
             $table->time('start_time')->default('07:00:00'); // jam masuk
             $table->time('end_time')->default('15:00:00');   // jam pulang
+            $table->time('check_in_tolerance')->default('08:00:00'); // jam masuk
             $table->timestamps();
         });
     }

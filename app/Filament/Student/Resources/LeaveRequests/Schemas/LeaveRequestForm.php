@@ -39,6 +39,7 @@ class LeaveRequestForm
                     ->image(),
                 Textarea::make('reason')
                     ->label('Keterangan')
+                    ->required()
                     ->columnSpanFull(),
 
             ]);

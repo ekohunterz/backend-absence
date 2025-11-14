@@ -36,9 +36,9 @@
 
         {{-- Action Buttons --}}
         <div class="flex justify-end gap-2 print:hidden">
-            <x-filament::button color="gray" icon="heroicon-o-printer" wire:click="print">
+            {{-- <x-filament::button color="gray" icon="heroicon-o-printer" wire:click="print">
                 Print
-            </x-filament::button>
+            </x-filament::button> --}}
             <x-filament::button color="success" icon="heroicon-o-document-arrow-down" wire:click="exportExcel">
                 Export Excel
             </x-filament::button>

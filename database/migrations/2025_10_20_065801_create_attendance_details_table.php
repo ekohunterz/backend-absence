@@ -17,7 +17,8 @@ return new class extends Migration {
             $table->enum('status', ['hadir', 'izin', 'sakit', 'alpa'])->default('hadir');
             $table->time('check_in_time')->nullable();
             $table->time('check_out_time')->nullable();
-            $table->string('location', 255)->nullable();
+            $table->string('location_in', 255)->nullable();
+            $table->string('location_out', 255)->nullable();
             $table->string('photo_in', 255)->nullable();
             $table->string('photo_out', 255)->nullable();
             $table->timestamps();

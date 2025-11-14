@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasAvatar;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
-class Student extends Authenticatable implements JWTSubject, FilamentUser
+class Student extends Authenticatable implements JWTSubject, FilamentUser, HasAvatar
 {
     /** @use HasFactory<\Database\Factories\StudentFactory> */
     use HasFactory;

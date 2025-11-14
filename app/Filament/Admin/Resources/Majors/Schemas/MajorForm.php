@@ -15,6 +15,7 @@ class MajorForm
                     ->unique()
                     ->label('Nama Jurusan')
                     ->reactive()
+                    ->debounce(500)
                     ->afterStateUpdated(function ($state, callable $set) {
                         // Ambil huruf pertama dari setiap kata dan ubah ke uppercase
                         $abbreviation = collect(explode(' ', $state))

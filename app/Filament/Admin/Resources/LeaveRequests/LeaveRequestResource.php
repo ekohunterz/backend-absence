@@ -33,9 +33,6 @@ class LeaveRequestResource extends Resource
         return 'Permintaan Izin yang belum diverifikasi';
     }
 
-
-    protected static ?string $recordTitleAttribute = 'date';
-
     protected static string|UnitEnum|null $navigationGroup = 'Fitur';
 
     protected static ?int $navigationSort = 3;

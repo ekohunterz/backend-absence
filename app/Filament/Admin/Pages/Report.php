@@ -107,9 +107,13 @@ class Report extends Page implements HasSchemas
 
     protected function loadReportData(): void
     {
-        $reportService = new ReportService($this->selectedSemesterId, $this->selectedGradeId);
-        $this->reportData = $reportService->loadReportData()['reportData'];
-        $this->statistics = $reportService->loadReportData()['statistics'];
+        $reportService = new ReportService();
+        $generatedData = $reportService->generateReport($this->selectedSemesterId, $this->selectedGradeId);
+
+        $this->reportData = $generatedData;
+        $this->statistics = $generatedData['statistics'];
+        $this->semester = $generatedData['semester'];
+        $this->grade = $generatedData['grade'];
     }
 
     public function getStatusColor(?string $status): string
@@ -158,20 +162,48 @@ class Report extends Page implements HasSchemas
 
     public function exportExcel()
     {
-        // TODO: Implement Excel export
-        \Filament\Notifications\Notification::make()
-            ->title('Export Excel')
-            ->body('Fitur export akan segera tersedia')
-            ->info()
-            ->send();
+        try {
+            // Validasi data
+            if (empty($this->reportData) || !isset($this->reportData['semester']) || !isset($this->reportData['grade'])) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Export Gagal')
+                    ->body('Data laporan tidak tersedia. Silakan pilih semester dan kelas terlebih dahulu.')
+                    ->danger()
+                    ->send();
+                return;
+            }
+
+            $semester = $this->reportData['semester'];
+            $grade = $this->reportData['grade'];
+
+            // Generate safe filename
+            $fileName = 'Laporan_Absensi_' .
+                str_replace(' ', '_', $grade->name) . '_' .
+                preg_replace('/[\/\\\\]/', '-', $semester->academicYear->name) . '_' .
+                str_replace(' ', '_', $semester->name) . '_' .
+                now()->format('d-m-Y') . '.xlsx';
+
+
+            // Download Excel
+            return Excel::download(
+                new AttendanceReportExport($this->reportData, $this->maxDays),
+                $fileName
+            );
+
+        } catch (\Exception $e) {
+            \Filament\Notifications\Notification::make()
+                ->title('Export Gagal')
+                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 
     public function exportPdf()
     {
-        // TODO: Implement PDF export
         \Filament\Notifications\Notification::make()
             ->title('Export PDF')
-            ->body('Fitur export akan segera tersedia')
+            ->body('Fitur export PDF akan segera tersedia')
             ->info()
             ->send();
     }
@@ -181,24 +213,5 @@ class Report extends Page implements HasSchemas
         $this->js('window.print()');
     }
 
-    public function exportToExcel()
-    {
-        $fileName = 'Laporan_Absensi_' . $this->grades->where('id', $this->grade_id)->first()->name . '_' . now()->format('F_Y') . '.xlsx';
-        $academic_year = $this->academic_years->where('id', $this->academic_year_id)->first();
-        return Excel::download(
-            new AttendanceReportExport($this->reports, $this->grade_id, $this->month, $academic_year->name),
-            $fileName
-        );
-    }
-
-    public function exportGradeToExcel()
-    {
-        $fileName = 'Laporan_Absensi_' . now()->format('F_Y') . '.xlsx';
-        $academic_year = $this->academic_years->where('id', $this->academic_year_id)->first();
-        return Excel::download(
-            new AttendanceGradeReportExport($this->report_grades, $this->month, $academic_year->name),
-            $fileName
-        );
-    }
 
 }

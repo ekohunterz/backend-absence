@@ -2,14 +2,9 @@
 
 namespace App\Filament\Admin\Pages;
 
-use App\Jobs\SendAttendanceWhatsAppJob;
-use App\Models\AcademicYear;
-use App\Models\Attendance;
 use App\Models\Grade;
-use App\Models\Semester;
 use App\Models\Student;
-use App\Services\WhatsAppService;
-use Carbon\Carbon;
+use App\Services\AttendanceService;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -19,7 +14,6 @@ use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
 use Illuminate\Http\Request;
 use App\Filament\Admin\Pages\Presence;
-use Illuminate\Support\Facades\DB;
 
 class SubmitPresence extends Page implements HasSchemas
 {
@@ -30,14 +24,22 @@ class SubmitPresence extends Page implements HasSchemas
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $parent = Presence::class;
     protected static ?string $activeNavigationParent = Presence::class;
+
     public ?Grade $grade = null;
     public $grades = [];
     public $students = [];
     public ?string $presence_date = null;
     public $verified = null;
     public ?int $grade_id = null;
+    public $selectedStudent = null;
+    public $showDetailModal = false;
 
+    protected AttendanceService $attendanceService;
 
+    public function boot(AttendanceService $attendanceService): void
+    {
+        $this->attendanceService = $attendanceService;
+    }
 
     public function mount(Request $request): void
     {
@@ -47,7 +49,7 @@ class SubmitPresence extends Page implements HasSchemas
             ? (int) $request->grade
             : ($this->grades->first()->id ?? null);
 
-        $this->presence_date = now()->format('Y-m-d');
+        $this->presence_date = $request->date ?? now()->format('Y-m-d');
 
         $this->loadPresenceData();
     }
@@ -55,7 +57,6 @@ class SubmitPresence extends Page implements HasSchemas
     public function form(Schema $schema): Schema
     {
         return $schema->components([
-            // 🔹 Pilih Kelas
             Select::make('grade_id')
                 ->hiddenLabel()
                 ->placeholder('Pilih Kelas')
@@ -67,7 +68,6 @@ class SubmitPresence extends Page implements HasSchemas
                     $this->loadPresenceData();
                 }),
 
-            // 🔹 Pilih Tanggal
             DatePicker::make('presence_date')
                 ->hiddenLabel()
                 ->placeholder('Tanggal Presensi')
@@ -85,122 +85,121 @@ class SubmitPresence extends Page implements HasSchemas
     {
         if (!$this->grade_id) {
             $this->students = [];
+            $this->verified = null;
+            $this->grade = null;
             return;
         }
 
         $this->grade = Grade::find($this->grade_id);
 
-        $attendance = Attendance::with(['details.student', 'verifier'])
-            ->where('grade_id', $this->grade_id)
-            ->whereDate('presence_date', $this->presence_date)
-            ->first();
+        $data = $this->attendanceService->getAttendanceData(
+            $this->grade_id,
+            $this->presence_date
+        );
 
-        // Ambil semua siswa di kelas
-        $students = Student::where('grade_id', $this->grade_id)
-            ->orderBy('name')
-            ->get();
-
-        if ($attendance) {
-            $this->verified = [
-                'name' => $attendance->verifier?->name,
-                'at' => Carbon::parse($attendance->verified_at)->diffForHumans(),
-            ];
-            $attendanceMap = $attendance->details->pluck('status', 'student_id')->toArray();
-
-            $this->students = $students->map(fn($s) => [
-                'id' => $s->id,
-                'name' => $s->name,
-                'nis' => $s->nis,
-                'gender' => $s->gender,
-                'status' => $attendanceMap[$s->id] ?? 'hadir',
-            ])->toArray();
-        } else {
-            $this->verified = null;
-            $this->students = $students->map(fn($s) => [
-                'id' => $s->id,
-                'name' => $s->name,
-                'nis' => $s->nis,
-                'gender' => $s->gender,
-                'status' => 'hadir',
-            ])->toArray();
-        }
+        $this->students = $data['students'];
+        $this->verified = $data['verified'];
     }
-
 
     public function save()
     {
-        DB::beginTransaction();
-
-        try {
-            // cari apakah absensi untuk kelas & tanggal ini sudah ada
-            $attendance = Attendance::updateOrCreate(
-                [
-                    'grade_id' => $this->grade_id,
-                    'presence_date' => $this->presence_date,
-                ],
-                [ // hanya akan dieksekusi jika belum ada
-                    'verified_at' => now(),
-                    'verified_by' => auth()->id(),
-                    'semester_id' => Semester::where('is_active', true)->first()->id,
-                    'academic_year_id' => AcademicYear::where('is_active', true)->first()->id
-                ]
-            );
-
-            $notificationCount = 0;
-            $date = now()->format('d F Y');
-            $time = now()->format('H:i');
-
-            // update detail tiap siswa
-            foreach ($this->students as $student) {
-                $attendance->details()->updateOrCreate(
-                    [
-                        'student_id' => $student['id'],
-                    ],
-                    [
-                        'status' => $student['status'],
-                        'check_in_time' => $student['status'] == 'hadir' ? now()->toTimeString() : null,
-                    ]
-                );
-
-                // 🔔 Kirim notifikasi WhatsApp
-                $studentModel = Student::find($student['id']);
-
-                if ($studentModel && $studentModel->parent_phone) {
-                    // Dispatch job ke queue
-                    SendAttendanceWhatsAppJob::dispatch(
-                        student: $studentModel,
-                        status: $student['status'],
-                        date: $date,
-                        time: $time,
-                        gradeName: $studentModel->grade->name
-                    )
-                        ->onQueue('whatsapp') // Queue khusus untuk WhatsApp
-                        ->delay(now()->addSeconds($notificationCount * 2)); // Delay bertahap 2 detik
-
-                    $notificationCount++;
-                }
-            }
-
-            DB::commit();
-
+        // Validate
+        if (!$this->grade_id || !$this->presence_date || empty($this->students)) {
             Notification::make()
-                ->title('Absensi berhasil disimpan!')
+                ->title('Data tidak lengkap')
+                ->body('Pastikan kelas, tanggal, dan data siswa sudah terisi.')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        // Save attendance using service
+        $result = $this->attendanceService->saveAttendance(
+            gradeId: $this->grade_id,
+            presenceDate: $this->presence_date,
+            students: $this->students,
+            verifiedBy: auth()->id()
+        );
+
+        if ($result['success']) {
+            Notification::make()
+                ->title('Berhasil!')
+                ->body($result['message'] . ($result['notifications_queued'] > 0
+                    ? " ({$result['notifications_queued']} notifikasi WhatsApp dijadwalkan)"
+                    : ''))
                 ->success()
                 ->send();
 
-        } catch (\Throwable $th) {
-            DB::rollBack();
-
+            // Reload data to show verification status
+            $this->loadPresenceData();
+        } else {
             Notification::make()
-                ->title('Gagal menyimpan absensi!')
-                ->body($th->getMessage())
+                ->title('Gagal menyimpan absensi')
+                ->body($result['message'])
                 ->danger()
                 ->send();
         }
-
-        return $this->redirect('/admin/submit-presence?grade=' . $this->grade_id, 'true');
     }
 
+    public function setAllStatus(string $status): void
+    {
+        if (!in_array($status, ['hadir', 'sakit', 'izin', 'alpa'])) {
+            return;
+        }
 
+        foreach ($this->students as $index => $student) {
+            $this->students[$index]['status'] = $status;
+        }
 
+        Notification::make()
+            ->title('Status diubah')
+            ->body("Semua siswa diset sebagai: " . ucfirst($status))
+            ->info()
+            ->send();
+    }
+
+    public function getStudentCount(): int
+    {
+        return count($this->students);
+    }
+
+    public function getStatusCounts(): array
+    {
+        $counts = [
+            'hadir' => 0,
+            'sakit' => 0,
+            'izin' => 0,
+            'alpa' => 0,
+        ];
+
+        foreach ($this->students as $student) {
+            if (isset($counts[$student['status']])) {
+                $counts[$student['status']]++;
+            }
+        }
+
+        return $counts;
+    }
+
+    public function showStudentDetail(int $index): void
+    {
+        $this->selectedStudent = $this->students[$index] ?? null;
+        $this->showDetailModal = true;
+    }
+
+    public function closeDetailModal(): void
+    {
+        $this->showDetailModal = false;
+        $this->selectedStudent = null;
+    }
+
+    public function hasAttachments(?array $student): bool
+    {
+        if (!$student)
+            return false;
+
+        return !empty($student['photo_in']) ||
+            !empty($student['photo_out']) ||
+            !empty($student['permission_proof']);
+    }
 }

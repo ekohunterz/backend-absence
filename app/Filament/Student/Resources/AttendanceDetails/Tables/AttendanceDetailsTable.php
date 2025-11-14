@@ -43,6 +43,11 @@ class AttendanceDetailsTable
                         };
                     })
                     ->formatStateUsing(fn($state) => ucfirst($state)),
+                TextColumn::make('attendance.verified_at')
+                    ->label('Diverifikasi Pada')
+                    ->placeholder('-')
+                    ->dateTime('d M Y')
+                    ->description(fn($record): string => $record->attendance->verified_at ? 'Pada pukul ' . $record->attendance->verified_at->format('H:i') : '-'),
             ])
             ->filters([
 

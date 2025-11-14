@@ -27,7 +27,7 @@ class AttendanceResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Clock;
 
     protected static string|UnitEnum|null $navigationGroup = 'Fitur';
-    protected static ?string $recordTitleAttribute = 'date';
+    protected static ?string $recordTitleAttribute = 'presence_date';
 
     protected static ?int $navigationSort = 1;
 

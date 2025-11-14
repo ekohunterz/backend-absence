@@ -7,46 +7,46 @@ use App\Models\Grade;
 use App\Models\Semester;
 use App\Models\Student;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class ReportService
 {
-    public $selectedSemesterId;
-    public $selectedGradeId;
-    public ?Semester $semester = null;
-    public ?Grade $grade = null;
-    public $reportData = [];
-    public $statistics = [];
-    public $maxDays = 31;
+    protected int $maxDays = 31;
 
-    public function __construct($selectedSemesterId, $selectedGradeId)
+    public function generateReport(int $semesterId, int $gradeId): array
     {
-        $this->resetData();
-        $this->selectedSemesterId = $selectedSemesterId;
-        $this->selectedGradeId = $selectedGradeId;
-    }
+        $semester = Semester::with('academicYear')->find($semesterId);
+        $grade = Grade::find($gradeId);
 
-
-    public function loadReportData(): array
-    {
-        if (!$this->selectedSemesterId || !$this->selectedGradeId) {
-            $this->resetData();
-            return [];
-        }
-
-        // Get semester and grade
-        $this->semester = Semester::with('academicYear')->find($this->selectedSemesterId);
-        $this->grade = Grade::find($this->selectedGradeId);
-
-        if (!$this->semester || !$this->grade) {
-            $this->resetData();
-            return [];
+        if (!$semester || !$grade) {
+            return $this->emptyReport();
         }
 
         // Parse semester dates
-        $startDate = Carbon::parse($this->semester->start_date);
-        $endDate = Carbon::parse($this->semester->end_date);
+        $startDate = Carbon::parse($semester->start_date);
+        $endDate = Carbon::parse($semester->end_date);
 
         // Get all months in semester
+        $months = $this->getMonthsInRange($startDate, $endDate);
+
+        // Get all students in this grade
+        $students = Student::where('grade_id', $gradeId)
+            ->where('status', 'aktif')
+            ->orderBy('name')
+            ->get();
+
+        // Get all attendance data
+        $attendances = $this->getAttendances($semesterId, $gradeId, $students);
+
+        // Group by student and date
+        $groupedData = $this->groupAttendances($attendances);
+
+        // Build report data
+        return $this->buildReportData($semester, $grade, $months, $students, $groupedData, $startDate, $endDate);
+    }
+
+    protected function getMonthsInRange(Carbon $startDate, Carbon $endDate): array
+    {
         $months = [];
         $currentMonth = $startDate->copy()->startOfMonth();
 
@@ -55,26 +55,28 @@ class ReportService
                 'year' => $currentMonth->year,
                 'month' => $currentMonth->month,
                 'month_name' => $currentMonth->locale('id')->translatedFormat('F'),
+                'month_name_short' => $currentMonth->locale('id')->translatedFormat('M'),
             ];
             $currentMonth->addMonth();
         }
 
-        // Get all students in this grade
-        $students = Student::where('grade_id', $this->selectedGradeId)
-            ->orderBy('name')
-            ->get();
+        return $months;
+    }
 
-        // Get all attendance data for this semester and grade
-        $attendances = AttendanceDetail::whereHas('attendance', function ($query) {
-            $query->where('grade_id', $this->selectedGradeId)
-                ->where('semester_id', $this->selectedSemesterId);
+    protected function getAttendances(int $semesterId, int $gradeId, Collection $students): Collection
+    {
+        return AttendanceDetail::whereHas('attendance', function ($query) use ($semesterId, $gradeId) {
+            $query->where('grade_id', $gradeId)
+                ->where('semester_id', $semesterId);
         })
             ->whereIn('student_id', $students->pluck('id'))
             ->with(['attendance'])
             ->get();
+    }
 
-        // Group by student and date
-        $groupedData = $attendances->groupBy('student_id')->map(function ($studentAttendances) {
+    protected function groupAttendances(Collection $attendances): Collection
+    {
+        return $attendances->groupBy('student_id')->map(function ($studentAttendances) {
             return $studentAttendances->groupBy(function ($item) {
                 return Carbon::parse($item->attendance->presence_date)->format('Y-m');
             })->map(function ($monthData) {
@@ -83,9 +85,20 @@ class ReportService
                 });
             });
         });
+    }
 
-        // Build report data
-        $this->reportData = [
+    protected function buildReportData(
+        Semester $semester,
+        Grade $grade,
+        array $months,
+        Collection $students,
+        Collection $groupedData,
+        Carbon $startDate,
+        Carbon $endDate
+    ): array {
+        $reportData = [
+            'semester' => $semester,
+            'grade' => $grade,
             'months' => $months,
             'students' => [],
         ];
@@ -99,89 +112,138 @@ class ReportService
         ];
 
         foreach ($students as $student) {
-            $studentData = [
-                'id' => $student->id,
-                'name' => $student->name,
-                'nis' => $student->nis,
-                'months' => [],
-                'stats' => [
-                    'hadir' => 0,
-                    'sakit' => 0,
-                    'izin' => 0,
-                    'alpa' => 0,
-                ],
-            ];
-
-            $studentAttendances = $groupedData->get($student->id) ?? collect();
-
-            foreach ($months as $monthInfo) {
-                $year = $monthInfo['year'];
-                $month = $monthInfo['month'];
-                $date = Carbon::create($year, $month, 1);
-                $daysInMonth = $date->daysInMonth;
-                $monthKey = $date->format('Y-m');
-
-                $monthData = [
-                    'days' => [],
-                ];
-
-                // Fill days data
-                for ($day = 1; $day <= $this->maxDays; $day++) {
-                    if ($day <= $daysInMonth) {
-                        $currentDate = Carbon::create($year, $month, $day);
-
-                        // Only process if date is within semester range
-                        if ($currentDate >= $startDate && $currentDate <= $endDate) {
-                            $attendance = $studentAttendances->get($monthKey)?->get($day);
-                            $status = $attendance ? $attendance->status : null;
-
-                            // Count statistics
-                            if ($status) {
-                                $studentData['stats'][$status]++;
-                                $totalStats[$status]++;
-                            }
-
-                            $monthData['days'][$day] = [
-                                'date' => $currentDate,
-                                'status' => $status,
-                                'is_weekend' => $currentDate->isWeekend(),
-                            ];
-                        } else {
-                            $monthData['days'][$day] = null;
-                        }
-                    } else {
-                        $monthData['days'][$day] = null;
-                    }
-                }
-
-                $studentData['months'][] = $monthData;
-            }
-
-            $this->reportData['students'][] = $studentData;
+            $studentData = $this->buildStudentData($student, $months, $groupedData, $startDate, $endDate, $totalStats);
+            $reportData['students'][] = $studentData;
         }
 
-        // Calculate statistics
-        $this->statistics = $totalStats;
+        $reportData['statistics'] = $totalStats;
 
+        return $reportData;
+    }
+
+    protected function buildStudentData(
+        Student $student,
+        array $months,
+        Collection $groupedData,
+        Carbon $startDate,
+        Carbon $endDate,
+        array &$totalStats
+    ): array {
+        $studentData = [
+            'id' => $student->id,
+            'name' => $student->name,
+            'nis' => $student->nis,
+            'months' => [],
+            'stats' => [
+                'hadir' => 0,
+                'sakit' => 0,
+                'izin' => 0,
+                'alpa' => 0,
+            ],
+        ];
+
+        $studentAttendances = $groupedData->get($student->id) ?? collect();
+
+        foreach ($months as $monthInfo) {
+            $monthData = $this->buildMonthData($monthInfo, $studentAttendances, $studentData['stats'], $totalStats, $startDate, $endDate);
+            $studentData['months'][] = $monthData;
+        }
+
+        return $studentData;
+    }
+
+    protected function buildMonthData(
+        array $monthInfo,
+        Collection $studentAttendances,
+        array &$studentStats,
+        array &$totalStats,
+        Carbon $startDate,
+        Carbon $endDate
+    ): array {
+        $year = $monthInfo['year'];
+        $month = $monthInfo['month'];
+        $date = Carbon::create($year, $month, 1);
+        $daysInMonth = $date->daysInMonth;
+        $monthKey = $date->format('Y-m');
+
+        $monthData = ['days' => []];
+
+        for ($day = 1; $day <= $this->maxDays; $day++) {
+            if ($day <= $daysInMonth) {
+                $currentDate = Carbon::create($year, $month, $day);
+
+                if ($currentDate >= $startDate && $currentDate <= $endDate) {
+                    $attendance = $studentAttendances->get($monthKey)?->get($day);
+                    $status = $attendance ? $attendance->status : null;
+
+                    if ($status) {
+                        $studentStats[$status]++;
+                        $totalStats[$status]++;
+                    }
+
+                    $monthData['days'][$day] = [
+                        'date' => $currentDate,
+                        'status' => $status,
+                        'is_weekend' => $currentDate->isWeekend(),
+                        'check_in' => $attendance ? $attendance->check_in_time : null,
+                        'check_out' => $attendance ? $attendance->check_out_time : null,
+                    ];
+                } else {
+                    $monthData['days'][$day] = null;
+                }
+            } else {
+                $monthData['days'][$day] = null;
+            }
+        }
+
+        return $monthData;
+    }
+
+    protected function emptyReport(): array
+    {
         return [
-            'reportData' => $this->reportData,
-            'statistics' => $this->statistics,
+            'semester' => null,
+            'grade' => null,
+            'months' => [],
+            'students' => [],
+            'statistics' => [
+                'hadir' => 0,
+                'sakit' => 0,
+                'izin' => 0,
+                'alpa' => 0,
+                'total_students' => 0,
+            ],
         ];
     }
 
-    protected function resetData(): void
+    public function getStatusColor(?string $status): string
     {
-        $this->reportData = [
-            'months' => [],
-            'students' => [],
-        ];
-        $this->statistics = [
-            'hadir' => 0,
-            'sakit' => 0,
-            'izin' => 0,
-            'alpa' => 0,
-            'total_students' => 0,
-        ];
+        if (!$status) {
+            return 'bg-gray-100';
+        }
+
+        return match ($status) {
+            'hadir' => 'bg-green-500',
+            'sakit' => 'bg-yellow-500',
+            'izin' => 'bg-blue-500',
+            'alpa' => 'bg-red-500',
+            default => 'bg-gray-200',
+        };
+    }
+
+    public function getStatusLabel(?string $status): string
+    {
+        if (!$status) {
+            return '-';
+        }
+
+        return match ($status) {
+            'hadir' => 'H',
+            'sakit' => 'S',
+            'izin' => 'I',
+            'alpa' => 'A',
+            default => '-',
+        };
     }
 
 

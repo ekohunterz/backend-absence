@@ -43,8 +43,11 @@ class AttendanceDetailsTable
                     ->label('Keluar')
                     ->time()
                     ->sortable(),
-                TextColumn::make('location')
-                    ->label('Lokasi')
+                TextColumn::make('location_in')
+                    ->label('Lokasi Masuk')
+                    ->searchable(),
+                TextColumn::make('location_out')
+                    ->label('Lokasi Keluar')
                     ->searchable(),
                 ImageColumn::make('photo_in')
                     ->label('Foto Masuk')

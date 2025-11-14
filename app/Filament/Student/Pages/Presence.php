@@ -5,7 +5,11 @@ namespace App\Filament\Student\Pages;
 use App\Models\AcademicYear;
 use App\Models\Attendance;
 use App\Models\AttendanceDetail;
+use App\Models\LeaveRequest;
+use App\Models\Semester;
 use App\Models\Setting;
+use App\Models\Student;
+use App\Services\PresenceService;
 use Carbon\Carbon;
 use BackedEnum;
 use UnitEnum;
@@ -27,286 +31,213 @@ class Presence extends Page
 
     protected static string|null|BackedEnum $navigationIcon = Phosphor::Fingerprint;
 
+    public $setting;
     public $presenceToday;
-    public Setting $setting;
+    public $hasPermission = false;
+    public $permissionStatus = null;
+    public $permissionReason = null;
+    public $permissionRecordedAt = null;
+
+    protected PresenceService $presenceService;
+
+    public function boot(PresenceService $presenceService): void
+    {
+        $this->presenceService = $presenceService;
+    }
 
     public function mount(): void
     {
-        $this->presenceToday = $this->getTodayPresence();
         $this->setting = Setting::first();
+        $this->loadTodayPresence();
     }
 
-    protected function getTodayPresence()
+    /**
+     * Load today's presence data and check for permissions
+     */
+    protected function loadTodayPresence(): void
     {
         $student = auth('student')->user();
 
         if (!$student) {
-            return null;
+            Notification::make()
+                ->title('Error')
+                ->body('Data siswa tidak ditemukan')
+                ->danger()
+                ->send();
+            return;
         }
 
-        // Get today's attendance for student's grade
-        $attendance = Attendance::where('grade_id', $student->grade_id)
-            ->whereDate('presence_date', today())
-            ->first();
+        // Get today's attendance detail
+        $this->presenceToday = $this->presenceService->getTodayPresence($student);
 
-        if (!$attendance) {
-            return null;
-        }
+        // Check if student has permission (izin/sakit/alpa)
 
-        // Get student's attendance detail
-        return AttendanceDetail::where('attendance_id', $attendance->id)
-            ->where('student_id', $student->id)
-            ->first();
+        $this->checkPermissionStatus();
+
     }
 
-    public function checkIn(float $latitude, float $longitude, string $photoBase64): void
+    /**
+     * Check if student has permission status that prevents check-in
+     */
+    protected function checkPermissionStatus(): void
     {
+        $student = auth('student')->user();
+        $leaveRequest = $this->presenceService->getPermissionStatus($student);
+
+        if ($leaveRequest) {
+            $this->hasPermission = true;
+            $this->permissionStatus = $leaveRequest->type;
+            $this->permissionReason = $leaveRequest->reason;
+            $this->permissionRecordedAt = $leaveRequest->created_at;
+        }
+    }
+
+    /**
+     * Check In
+     */
+    public function checkIn($latitude, $longitude, $photo): void
+    {
+        // Prevent check-in if has permission
+        if ($this->hasPermission) {
+            Notification::make()
+                ->title('Tidak Dapat Check-In')
+                ->body("Anda sudah tercatat {$this->permissionStatus} hari ini")
+                ->warning()
+                ->send();
+            return;
+        }
+
+        // Validate location
+        if (!$this->presenceService->validateLocation($latitude, $longitude)) {
+            Notification::make()
+                ->title('Lokasi Tidak Valid')
+                ->body('Anda berada di luar radius presensi')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Validate photo
+        if (!$photo) {
+            Notification::make()
+                ->title('Foto Diperlukan')
+                ->body('Silakan ambil foto selfie terlebih dahulu')
+                ->warning()
+                ->send();
+            return;
+        }
+
         try {
             $student = auth('student')->user();
 
-            if (!$student) {
-                throw new \Exception('Siswa tidak ditemukan');
-            }
-
-            // Check if already checked in today
-            if ($this->presenceToday) {
-                Notification::make()
-                    ->title('Sudah Absen')
-                    ->body('Anda sudah melakukan presensi hari ini')
-                    ->warning()
-                    ->send();
-                return;
-            }
-
-            // Validate location distance
-            $distance = $this->calculateDistance(
-                $this->setting->latitude,
-                $this->setting->longitude,
-                $latitude,
-                $longitude
-            );
-
-            if ($distance > $this->setting->radius) {
-                Notification::make()
-                    ->title('Gagal Check In')
-                    ->body("Anda terlalu jauh dari sekolah ({$distance}m). Radius maksimal: {$this->setting->radius}m")
-                    ->danger()
-                    ->send();
-                return;
-            }
-
-            DB::beginTransaction();
-
             // Save photo
-            $photoPath = $this->savePhoto($photoBase64, $student->id);
+            $photoPath = $this->presenceService->savePhoto($photo, 'check-in', $student->id);
 
-            // Get or create today's attendance record
-            $attendance = Attendance::firstOrCreate(
+            // Create or update attendance detail
+            $this->presenceToday = AttendanceDetail::updateOrCreate(
                 [
-                    'grade_id' => $student->grade_id,
-                    'presence_date' => today(),
+                    'attendance_id' => $this->presenceService->getOrCreateAttendance($student)->id,
+                    'student_id' => $student->id,
                 ],
                 [
-                    'academic_year_id' => AcademicYear::where('is_active', true)->first()->id,
-                    'verified_by' => null,
+                    'status' => 'hadir',
+                    'check_in_time' => now(),
+                    'location_in' => $latitude . ',' . $longitude,
+                    'photo_in' => $photoPath,
                 ]
             );
 
-            // Create attendance detail
-            $attendanceDetail = AttendanceDetail::create([
-                'attendance_id' => $attendance->id,
-                'student_id' => $student->id,
-                'status' => 'hadir',
-                'check_in_time' => now()->toTimeString(),
-                'location' => "{$latitude},{$longitude}",
-                'photo_in' => $photoPath,
-            ]);
-
-            DB::commit();
-
-            // Update state
-            $this->presenceToday = $attendanceDetail;
-
             Notification::make()
-                ->title('Check In Berhasil!')
-                ->body('Presensi Anda telah tercatat pada ' . now()->format('H:i'))
+                ->title('Berhasil Check-In')
+                ->body('Presensi masuk berhasil dicatat')
                 ->success()
                 ->send();
 
-            // Refresh page component
-            $this->dispatch('$refresh');
+            // Reload data
+            $this->loadTodayPresence();
 
         } catch (\Exception $e) {
-            DB::rollBack();
-
             Notification::make()
-                ->title('Check In Gagal')
+                ->title('Gagal Check-In')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
-
-            \Log::error('Check-in error: ' . $e->getMessage(), [
-                'student_id' => auth('student')->id(),
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'trace' => $e->getTraceAsString()
-            ]);
         }
     }
 
     /**
-     * Calculate distance using Haversine formula
+     * Check Out
      */
-    protected function calculateDistance(
-        float $lat1,
-        float $lon1,
-        float $lat2,
-        float $lon2
-    ): float {
-        $earthRadius = 6371000; // meters
-
-        $lat1Rad = deg2rad($lat1);
-        $lat2Rad = deg2rad($lat2);
-        $deltaLat = deg2rad($lat2 - $lat1);
-        $deltaLon = deg2rad($lon2 - $lon1);
-
-        $a = sin($deltaLat / 2) * sin($deltaLat / 2) +
-            cos($lat1Rad) * cos($lat2Rad) *
-            sin($deltaLon / 2) * sin($deltaLon / 2);
-
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-
-        return round($earthRadius * $c, 2);
-    }
-
-    /**
-     * Save base64 photo to storage
-     */
-
-    public function checkOut(float $latitude, float $longitude, string $photoBase64): void
+    public function checkOut($latitude, $longitude, $photo): void
     {
+        // Prevent check-out if has permission
+        if ($this->hasPermission) {
+            Notification::make()
+                ->title('Tidak Dapat Check-Out')
+                ->body("Anda sudah tercatat {$this->permissionStatus} hari ini")
+                ->warning()
+                ->send();
+            return;
+        }
+
+        // Validate if already checked in
+        if (!$this->presenceToday || !$this->presenceToday->check_in_time) {
+            Notification::make()
+                ->title('Belum Check-In')
+                ->body('Anda harus check-in terlebih dahulu')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        // Validate if already checked out
+        if ($this->presenceToday->check_out_time) {
+            Notification::make()
+                ->title('Sudah Check-Out')
+                ->body('Anda sudah melakukan check-out hari ini')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        // Validate location
+        if (!$this->presenceService->validateLocation($latitude, $longitude)) {
+            Notification::make()
+                ->title('Lokasi Tidak Valid')
+                ->body('Anda berada di luar radius presensi')
+                ->danger()
+                ->send();
+            return;
+        }
+
         try {
-            $student = auth('student')->user();
 
-            if (!$student) {
-                throw new \Exception('Siswa tidak ditemukan');
-            }
+            // Save photo
+            $photoPath = $this->presenceService->savePhoto($photo, 'check-out', auth('student')->user()->id);
 
-            // Check if not checked in yet
-            if (!$this->presenceToday) {
-                Notification::make()
-                    ->title('Belum Check-In')
-                    ->body('Anda harus check-in terlebih dahulu sebelum check-out')
-                    ->warning()
-                    ->send();
-                return;
-            }
-
-            // Check if already checked out
-            if ($this->presenceToday->check_out_time) {
-                Notification::make()
-                    ->title('Sudah Check-Out')
-                    ->body('Anda sudah melakukan check-out hari ini')
-                    ->warning()
-                    ->send();
-                return;
-            }
-
-            // Validate location distance
-            $distance = $this->calculateDistance(
-                $this->setting->latitude,
-                $this->setting->longitude,
-                $latitude,
-                $longitude
-            );
-
-            if ($distance > $this->setting->radius) {
-                Notification::make()
-                    ->title('Gagal Check-Out')
-                    ->body("Anda terlalu jauh dari sekolah ({$distance}m). Radius maksimal: {$this->setting->radius}m")
-                    ->danger()
-                    ->send();
-                return;
-            }
-
-            DB::beginTransaction();
-
-            // Save checkout photo
-            $photoPath = $this->savePhoto($photoBase64, $student->id, 'checkout');
-
-            // Update attendance detail with check-out info
+            // Update attendance detail
             $this->presenceToday->update([
-                'check_out_time' => now()->toTimeString(),
+                'check_out_time' => now(),
+                'location_out' => $latitude . ',' . $longitude,
                 'photo_out' => $photoPath,
             ]);
 
-            DB::commit();
-
-            // Refresh state
-            $this->presenceToday = $this->presenceToday->fresh();
-
-            // Calculate work duration
-            $checkInTime = Carbon::parse($this->presenceToday->check_in_time);
-            $checkOutTime = Carbon::parse($this->presenceToday->check_out_time);
-            $duration = $checkInTime->diff($checkOutTime);
-
             Notification::make()
-                ->title('Check-Out Berhasil!')
-                ->body("Anda telah check-out pada {$checkOutTime->format('H:i')}. Total jam kerja: {$duration->h} jam {$duration->i} menit")
+                ->title('Berhasil Check-Out')
+                ->body('Presensi keluar berhasil dicatat')
                 ->success()
                 ->send();
 
-            // Refresh component
-            $this->dispatch('$refresh');
+            // Reload data
+            $this->loadTodayPresence();
 
         } catch (\Exception $e) {
-            DB::rollBack();
-
             Notification::make()
-                ->title('Check-Out Gagal')
+                ->title('Gagal Check-Out')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
-
-            \Log::error('Check-out error: ' . $e->getMessage(), [
-                'student_id' => auth('student')->id(),
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'trace' => $e->getTraceAsString()
-            ]);
         }
     }
 
-    /**
-     * Updated savePhoto to support checkout
-     */
-    protected function savePhoto(string $base64, int $studentId, string $type = 'checkin'): string
-    {
-        // Remove base64 prefix
-        $image = preg_replace('/^data:image\/\w+;base64,/', '', $base64);
-        $image = str_replace(' ', '+', $image);
-
-        // Decode base64
-        $imageData = base64_decode($image);
-
-        if ($imageData === false) {
-            throw new \Exception('Invalid image data');
-        }
-
-        // Validate size (max 5MB)
-        $imageSize = strlen($imageData);
-        if ($imageSize > 5 * 1024 * 1024) {
-            throw new \Exception('Ukuran foto terlalu besar (maksimal 5MB)');
-        }
-
-        // Generate filename
-        $filename = "{$type}_{$studentId}_" . now()->format('YmdHis') . '.jpg';
-        $path = 'attendance/photos/' . now()->format('Y/m');
-        $fullPath = $path . '/' . $filename;
-
-        // Save to storage
-        Storage::disk('public')->put($fullPath, $imageData);
-
-        return $fullPath;
-    }
 }

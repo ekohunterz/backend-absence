@@ -28,6 +28,8 @@ final class UserForm
                     ->imagePreviewHeight('250')
                     ->panelAspectRatio('6:5')
                     ->panelLayout('integrated')
+                    ->disk('public')
+                    ->directory('avatars')
                     ->columnSpan('2'),
                 Grid::make(2)
                     ->schema([

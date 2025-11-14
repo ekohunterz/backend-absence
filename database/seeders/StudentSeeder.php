@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Grade;
 use App\Models\Student;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -27,7 +28,11 @@ class StudentSeeder extends Seeder
             'grade_id' => 1,
         ]);
 
-        // Create 50 random students using factory
-        Student::factory(50)->create();
+        // Untuk setiap kelas, buat 30 siswa
+        Grade::all()->each(function ($grade) {
+            Student::factory(30)->create([
+                'grade_id' => $grade->id,
+            ]);
+        });
     }
 }

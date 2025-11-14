@@ -23,6 +23,12 @@ class ListStudents extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('promote')
+                ->label('Naik Kelas')
+                ->icon('heroicon-o-arrow-up')
+                ->color('success')
+                ->url(route('filament.admin.pages.bulk-promotion'))
+                ->openUrlInNewTab(),
             // 🔵 Button Import
             Action::make('import')
                 ->label('Import Excel')

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Models\Attendance;
 use App\Models\Grade;
 use App\Models\Major;
 use Filament\Forms\Components\DatePicker;
@@ -30,86 +31,104 @@ class Presence extends Page implements HasSchemas
 
     protected static string|UnitEnum|null $navigationGroup = 'Fitur';
 
-    public $grades;
-    public $majors;
-    public ?int $major_id = null;
-    public ?string $search = '';
-    public ?string $presence_date = null;
-
+    public $grades = [];
+    public ?string $selected_date = null;
+    public $filterStatus = 'all';
+    public ?string $search = null;
 
     public function mount(): void
     {
-        $this->majors = Major::orderBy('name')->get();
-        $this->presence_date = now()->format('Y-m-d');
+        $this->selected_date = now()->format('Y-m-d');
         $this->loadGrades();
     }
 
     public function form(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                // 🔹 Tanggal Presensi
-                DatePicker::make('presence_date')
-                    ->hiddenLabel()
-                    ->placeholder('Tanggal Presensi')
-                    ->default($this->presence_date)
-                    ->live()
-                    ->reactive()
-                    ->maxDate(now()->format('Y-m-d'))
-                    ->afterStateUpdated(function ($state) {
-                        $this->presence_date = $state ?? now()->format('Y-m-d');
-                        $this->loadGrades();
-                    }),
-
-                // 🔹 Pencarian kelas
-                TextInput::make('search')
-                    ->hiddenLabel()
-                    ->placeholder('Cari Kelas')
-                    ->live(debounce: 500)
-                    ->afterStateUpdated(function ($state) {
-                        $this->search = $state ?? '';
-                        $this->loadGrades();
-                    }),
-
-                // 🔹 Filter jurusan
-                Select::make('major_id')
-                    ->hiddenLabel()
-                    ->placeholder('Semua Jurusan')
-                    ->selectablePlaceholder(true)
-                    ->options(
-                        $this->majors->pluck('name', 'id')->toArray()
-                    )
-                    ->searchable()
-                    ->reactive()
-                    ->afterStateUpdated(function ($state) {
-                        $this->major_id = $state;
-                        $this->loadGrades();
-                    }),
-            ])
-            ->columns(3)
-        ;
+        return $schema->components([
+            DatePicker::make('selected_date')
+                ->label('Tanggal')
+                ->default($this->selected_date)
+                ->maxDate(now()->format('Y-m-d'))
+                ->reactive()
+                ->afterStateUpdated(function ($state) {
+                    $this->selected_date = $state ?: now()->format('Y-m-d');
+                    $this->loadGrades();
+                }),
+            TextInput::make('search')
+                ->label('Cari Kelas')
+                ->placeholder('Cari Kelas')
+                ->reactive()
+                ->debounce(500)
+                ->afterStateUpdated(function ($state) {
+                    $this->search = $state;
+                    $this->loadGrades();
+                })
+        ])->columns(2);
     }
 
-    protected function loadGrades(): void
+    public function loadGrades(): void
     {
+        $selectedDate = $this->selected_date ?: now()->format('Y-m-d');
 
         $this->grades = Grade::with(['major'])
-            ->withExists([
-                'attendances as has_attendance_today' => fn($query) =>
-                    $query->whereDate('presence_date', $this->presence_date)->whereNotNull('verified_by'),
+            ->withCount([
+                'students' => function ($query) {
+                    $query->where('status', 'aktif');
+                }
             ])
-            ->when(
-                filled($this->search),
-                fn($q) =>
-                $q->where('name', 'like', '%' . $this->search . '%')
-            )
-            ->when(
-                $this->major_id,
-                fn($q) =>
-                $q->where('major_id', $this->major_id)
-            )
+            ->when($this->search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%");
+            })
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(function ($grade) use ($selectedDate) {
+                // Check if attendance exists for this grade on selected date
+                $hasAttendance = Attendance::where('grade_id', $grade->id)
+                    ->whereDate('presence_date', $selectedDate)
+                    ->whereNotNull('verified_at')
+                    ->exists();
+
+                return [
+                    'id' => $grade->id,
+                    'name' => $grade->name,
+                    'major' => [
+                        'id' => $grade->major->id,
+                        'name' => $grade->major->name,
+                    ],
+                    'students_count' => $grade->students_count,
+                    'has_attendance_today' => $hasAttendance,
+                ];
+            })
+            ->toArray();
+    }
+
+    public function updatedFilterStatus(): void
+    {
+        // Filter akan dihandle di view
+        // Method ini untuk trigger reactivity
+    }
+
+    public function getTotalGradesProperty(): int
+    {
+        return count($this->grades);
+    }
+
+    public function getAttendedGradesProperty(): int
+    {
+        return collect($this->grades)->where('has_attendance_today', true)->count();
+    }
+
+    public function getNotAttendedGradesProperty(): int
+    {
+        return $this->totalGrades - $this->attendedGrades;
+    }
+
+    public function getCompletionPercentageProperty(): float
+    {
+        if ($this->totalGrades === 0) {
+            return 0;
+        }
+        return round(($this->attendedGrades / $this->totalGrades) * 100, 1);
     }
 
 

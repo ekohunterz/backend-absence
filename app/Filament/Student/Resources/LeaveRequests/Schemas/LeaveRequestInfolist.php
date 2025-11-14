@@ -40,10 +40,10 @@ class LeaveRequestInfolist
                         'success' => 'approved',
                         'warning' => 'pending',
                     ]),
-                TextEntry::make('verifier.name')
+                TextEntry::make('respondedBy.name')
                     ->label('Diverifikasi Oleh')
                     ->placeholder('-'),
-                TextEntry::make('verified_at')
+                TextEntry::make('responded_at')
                     ->label('Diverifikasi Pada')
                     ->dateTime()
                     ->placeholder('-'),

@@ -28,7 +28,17 @@ class AttendanceDetailInfolist
                                 'danger' => 'alpa',
                                 'info' => 'izin',
                                 'warning' => 'sakit',
-                            ]),
+                            ])->formatStateUsing(fn($state): string => ucwords((string) $state)),
+                        TextEntry::make('attendance.verified_at')
+                            ->label('Diverifikasi Pada')
+                            ->dateTime()
+                            ->placeholder('-')
+
+                    ])->columns(2)->columnSpanFull(),
+                Section::make('Detail Absensi')
+                    ->collapsible()
+                    ->visible(fn($record) => $record->attendance != null)
+                    ->components([
                         TextEntry::make('check_in_time')
                             ->label('Masuk')
                             ->dateTime()
@@ -37,8 +47,11 @@ class AttendanceDetailInfolist
                             ->label('Keluar')
                             ->dateTime()
                             ->placeholder('-'),
-                        TextEntry::make('location')
-                            ->label('Lokasi')
+                        TextEntry::make('location_in')
+                            ->label('Lokasi Masuk')
+                            ->placeholder('-'),
+                        TextEntry::make('location_out')
+                            ->label('Lokasi Keluar')
                             ->placeholder('-'),
                         ImageEntry::make('photo_in')
                             ->disk('public')

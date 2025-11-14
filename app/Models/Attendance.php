@@ -22,6 +22,11 @@ class Attendance extends Model
         'leave_count',
     ];
 
+    protected $casts = [
+        'presence_date' => 'date',
+        'verified_at' => 'datetime',
+    ];
+
 
     public function grade()
     {

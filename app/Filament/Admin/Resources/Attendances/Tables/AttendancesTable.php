@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Attendances\Tables;
 
 use App\Models\AcademicYear;
+use App\Models\Attendance;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -42,7 +43,7 @@ class AttendancesTable
                     ->sortable(),
                 TextColumn::make('academicYear.name')
                     ->label('Tahun Ajaran & Semester')
-                    ->description(fn($record) => $record->semester->getTypeLabel())
+                    ->description(fn(Attendance $record): string => $record->semester->getTypeLabel() ?? '-')
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()
