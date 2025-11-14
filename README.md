@@ -1,117 +1,205 @@
-## FilaStarter Kit
+# Presensi Siswa Berbasis Lokasi
 
-A Starter Kit For Filament with most necessities
-pre-configured based on personal preferences/requirements.
-
-Preview Login:
-
-| Dark                                   | Light                                   |
-|----------------------------------------|-----------------------------------------|
-| ![](https://raw.githubusercontent.com/raugadh/fila-starter/refs/heads/master/.github/preview-login-dark.webp) | ![](https://raw.githubusercontent.com/raugadh/fila-starter/refs/heads/master/.github/preview-login-light.webp) 
+## 📸 Preview
 
 
-Preview DashBoard:
+ <img width="1912" height="936" alt="Cuplikan layar 2025-11-14 122815" src="https://github.com/user-attachments/assets/2f1c691e-f2ea-4b46-ba5b-dbcf409d084d" />  <img width="1910" height="941" alt="Cuplikan layar 2025-11-14 123259" src="https://github.com/user-attachments/assets/e761311b-ab0f-4787-89c0-68c7e6f51c74" />
+<img width="1903" height="935" alt="Cuplikan layar 2025-11-14 123520" src="https://github.com/user-attachments/assets/dbf990dc-d165-4c26-a702-fc2c406937de" />
 
-| Dark                                       | Light                                       |
-|--------------------------------------------|---------------------------------------------|
-| ![](https://raw.githubusercontent.com/raugadh/fila-starter/refs/heads/master/.github/preview-dashboard-dark.webp) | ![](https://raw.githubusercontent.com/raugadh/fila-starter/refs/heads/master/.github/preview-dashboard-light.webp) |
+                                  
 
+## 🚀 Fitur Utama
 
-### Packages
+- **Autentikasi & Otorisasi**: Sistem login dengan role-based access control
+- **Manajemen Pengguna**: CRUD pengguna dengan permission management
+- **Manajemen Siswa & Kelas**: CRUD data siswa dan kelas
+- **Theme Switching**: Dark/Light mode dengan penyimpanan preferensi
+- **Modern UI**: Interface yang responsif dengan Filament 4.x
+- **Presensi Siswa berbasis Geolocation**: Fitur presensi yang memanfaatkan data lokasi untuk validasi kehadiran siswa.
+- **Notifikasi WhatsApp Otomatis (Menggunakan Fonnte)**: Sistem notifikasi yang mengirimkan pesan WhatsApp secara otomatis kepada orang tua siswa terkait kehadiran atau ketidakhadiran anak mereka.
+- **Presensi manual oleh Guru**: Fitur yang memungkinkan guru untuk melakukan presensi manual bagi siswa yang mungkin tidak dapat melakukan presensi mandiri.
+- **Laporan Kehadiran**: Fitur untuk menghasilkan laporan kehadiran siswa dalam format yang mudah dibaca dan diunduh.
 
-[Laravel](https://github.com/laravel/laravel)  
-[Livewire](https://github.com/livewire/livewire)  
-[Filament](https://github.com/filamentphp/filament)
+## 📋 Requirements
 
-#### Packages Installed/Pre-configured
+- PHP >= 8.2
+- Composer
+- Node.js & Bun (untuk asset compilation)
+- MySQL/PostgreSQL
 
-- Filament Packages
-    - awcodes/light-switch
-    - awcodes/overlook
-    - bezhansalleh/filament-shield
-    - diogogpinto/filament-auth-ui-enhancer
-    - dutchcodingcompany/filament-developer-logins
-    - filafly/brisk (Theme)
-    - filafly/filament-phosphor-icons
-    - gboquizosanchez/filament-log-viewer
-    - jeffgreco13/filament-breezy
-    - marcelweidum/filament-expiration-notice
-    - unknow-sk/filament-logger
+## 🛠️ Instalasi
 
-- Other Packages
-    - barryvdh/laravel-ide-helper
-    - barryvdh/laravel-debugbar
-    - laravel/boost
+### 1. Clone Repository
 
-### Compatibility
-
-| Starter Kit | Filament Version |
-| ----------- | ---------------- |
-| **2.x**     | **_3.x_**        |
-| **3.x**     | **4.x**          |
-
-### Installation
-
-#### Create New Project
-
-```fish
-composer create-project --prefer-dist raugadh/fila-starter example-app
+```bash
+git clone https://github.com/ekohunterz/backend-absence.git
+cd backend-absence
 ```
 
-#### Deployment
+### 2. Konfigurasi Environment
 
-- Configure Project.
-    - Update Composer Packages
-    - Add Database Credentials
-    - Add ASSET_PREFIX if deployed application in sub-folder
-    - Link Storage
+```bash
+cp .env.example .env
+```
 
-        ```fish
-        php artisan storage:link
-        ```
+Edit file `.env` dan sesuaikan konfigurasi:
 
-- Initialize Project
+```env
+APP_NAME="Backend Absence"
+APP_URL=http://localhost
 
-    ```fish
-    php artisan project:init
-    ```
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=backend_absence
+DB_USERNAME=root
+DB_PASSWORD=
 
-- Update Permissions and Migrations
-    - Whenever new Resource , Page or migration is Added Run update command to migrate and create permissions.
-        ```fish
-        php artisan project:update
-        ```
+# Jika deploy di sub-folder
+ASSET_PREFIX=/subfolder
 
-- build vite assets
+#Jika ingin menggunakan REST API
+JWT_SECRET=
+JWT_SHOW_BLACKLIST_EXCEPTION=true
 
-    ```fish
-    bun install && bun run build
-    ```
+#Untuk whatsapp notification (disini menggunakan Fonnte)
+WHATSAPP_API_URL=
+WHATSAPP_TOKEN=
+```
 
-- Clear/Generate Cache
+### 3. Install Dependencies
 
-    ```fish
-    php artisan project:cache
-    ```
+```bash
+composer install
+```
 
-- Generate IDE Helpers
+### 4. Generate Application Key
 
-    ```fish
-    php artisan dev:init
-    ```
+```bash
+php artisan key:generate
+```
 
-- Configure [Laravel Boost](https://github.com/laravel/boost)
+### 5. Link Storage
 
-    ```fish
-    php artisan boost:install
-    ```
+```bash
+php artisan storage:link
+```
 
-##### Make sure to check custom console commands yourself and change them based on your requirements.
+### 6. Initialize Project
 
-#### Enjoy
+Jalankan command berikut untuk migrasi database, seeder, dan permission setup:
 
-    Thanks for using this kit, leave a star if you found this useful.
+```bash
+php artisan migrate
+```
 
-## License
+### 7. Build Assets
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+```bash
+bun install && bun run build
+```
+
+### 8. Cache Configuration
+
+```bash
+php artisan project:cache
+```
+
+## 🚀 Menjalankan Aplikasi
+
+### Development Server
+
+```bash
+php artisan serve
+```
+
+### Development dengan Vite
+
+Untuk development dengan hot-reload:
+
+```bash
+bun run dev
+```
+
+## 👤 Default User
+
+Admin
+
+```
+Email: admin@admin.com
+Password: password
+```
+
+## 🔒 Permission Management
+
+Project ini menggunakan **Filament Shield** untuk role & permission management. Setiap Resource dan Page secara otomatis mendapatkan permissions:
+
+- `view_[resource]`
+- `view_any_[resource]`
+- `create_[resource]`
+- `update_[resource]`
+- `delete_[resource]`
+- `delete_any_[resource]`
+
+Kelola permissions melalui dashboard: **Settings → Roles**
+
+## 🐛 Debugging
+
+### Debug Bar
+
+Laravel Debugbar akan aktif secara otomatis di environment `local`:
+
+```env
+DEBUGBAR_ENABLED=true
+```
+
+### Log Viewer
+
+Akses log viewer melalui menu di sidebar atau:
+
+```
+/admin/logs
+```
+
+## 📝 Commands Cheat Sheet
+
+```bash
+
+
+# Build assets for production
+bun run build
+
+# Watch assets for development
+bun run dev
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Silakan buat Pull Request atau laporkan issues di GitHub repository.
+
+1. Fork repository
+2. Buat feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push ke branch (`git push origin feature/AmazingFeature`)
+5. Buka Pull Request
+
+## 📄 License
+
+Proyek ini dilisensikan di bawah [MIT License](LICENSE.md).
+
+## 🙏 Credits
+
+- **Filament** - [filamentphp.com](https://filamentphp.com)
+- **Laravel** - [laravel.com](https://laravel.com)
+- **Fila Starter Kit** - [github.com/raugadh/fila-starter](https://filamentphp.com/plugins/raugadh-fila-starter)
+- Semua package maintainers yang terlibat
+
+## 💬 Support
+
+Jika Anda menemukan proyek ini berguna, berikan ⭐ di [GitHub](https://github.com/ekohunterz/backend-absence)!
+
+Untuk pertanyaan atau issues, silakan buat issue di GitHub repository.
+
+---
+
+Made with ❤️ using Laravel & Filament
