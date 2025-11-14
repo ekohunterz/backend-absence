@@ -48,7 +48,7 @@
         </x-filament::section>
 
         {{-- Statistics Cards --}}
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {{-- Hadir --}}
             <div
                 class="relative overflow-hidden rounded-lg bg-gradient-to-br from-green-500 to-green-600 p-4 text-white shadow-lg">
@@ -86,16 +86,6 @@
                 <div class="relative">
                     <div class="text-3xl font-bold mb-1">{{ $statistics['alpa'] ?? 0 }}</div>
                     <p class="text-xs opacity-90 uppercase tracking-wide">Alpa</p>
-                </div>
-            </div>
-
-            {{-- Hari Kerja --}}
-            <div
-                class="relative overflow-hidden rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 p-4 text-white shadow-lg">
-                <div class="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -mr-8 -mt-8"></div>
-                <div class="relative">
-                    <div class="text-3xl font-bold mb-1">{{ $statistics['work_days'] ?? 0 }}</div>
-                    <p class="text-xs opacity-90 uppercase tracking-wide">Hari Kerja</p>
                 </div>
             </div>
 
